@@ -1,0 +1,7 @@
+.env
+__pycache__
+*.pyc
+traces/
+week1/GUIDE.md
+*.md
+!data/knowledge/*.md

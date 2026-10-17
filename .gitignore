@@ -1,0 +1,20 @@
+# 敏感信息与密钥，绝不提交
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 运行时产物不提交；业务小数据（CSV/知识库/题库）要提交
+data/sessions/
+data/traces/
+shoppilot/rag/index/
+*.faiss
+*.index
+
+# 日志
+*.log
+bytedance/ 
