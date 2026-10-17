@@ -66,12 +66,12 @@ class ToolRegistry:
         self._lock = threading.Lock()
 
     # ---------- 注册 ----------
-    def register(self, name: str, description: str, args_model: type[BaseModel],
-                 task_types: list[str], dangerous: bool = False):
-        def deco(func: Callable[..., str]) -> Callable[..., str]:
-            self._tools[name] = Tool(name, func, description, args_model, task_types, dangerous)
-            return func
-        return deco
+    def register(self, name: str, func: Callable[..., str], description: str,
+                 args_model: type[BaseModel], task_types: list[str],
+                 dangerous: bool = False) -> Callable[..., str]:
+        """直接注册一个实现函数：name + func + Pydantic args 模型即完整契约。"""
+        self._tools[name] = Tool(name, func, description, args_model, task_types, dangerous)
+        return func
 
     # ---------- 查询 ----------
     def get(self, name: str) -> Tool:
