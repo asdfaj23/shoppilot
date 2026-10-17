@@ -6,6 +6,13 @@ ShopPilot：电商导购智能体。8 层 Agent Harness（config/llm/models 契�
 组合"规划→ReAct→Reflection"三范式与四类记忆分层。教学代码已归档至 `archive/week1-4`
 （只读参考，不再修改）。评测体系文档见 `docs/DESIGN.md`。
 
+## 示例提问（与文档/控制台/题库保持同源）
+
+README「示例提问」一节是**官方示例集**（五大场景 × 若干问题，与 `ShopPilot.html`
+场景卡片、`bench_cases.json` 题库对齐）。约定：
+- 改商品池/工具/意图路由后，先跑 README 全部示例链接确认行为；
+- 新增场景能力 = README 加示例 + 控制台加卡片 + `bench_cases.json` 加题，三处同步。
+
 ## 环境与命令
 
 - Python：`D:\conda_envs\agent\python.exe`（依赖已装齐，勿新装；Windows cmd）
