@@ -219,6 +219,7 @@ class TeamResult(BaseModel):
     duration_s: float = 0.0
     degradations: list[str] = Field(default_factory=list)
     reflect_issues: list[str] = Field(default_factory=list)
+    learned: list[str] = Field(default_factory=list, description="本轮画像学到了什么（可解释记忆）")
     trace_file: str = ""
 
     @field_validator("citations", mode="before")
