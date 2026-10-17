@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopPilot · 控制台</title>
+<style>
+  :root { --bg:#111214; --panel:#1b1d21; --line:#2b2e35; --txt:#e6e6e6; --dim:#9aa0a6; --accent:#4f8cff; --ok:#3fb96f; --bad:#e05c5c; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:radial-gradient(1200px 600px at 70% -10%, #1b2233 0%, var(--bg) 55%);
+         color:var(--txt); font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+         min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .wrap { width:100%; max-width:760px; }
+  h1 { font-size:34px; letter-spacing:2px; }
+  h1 .pilot { color:var(--accent); }
+  .sub { color:var(--dim); margin:10px 0 30px; font-size:14px; }
+  .status { display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line);
+            border-radius:12px; padding:16px 20px; margin-bottom:22px; }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--bad); box-shadow:0 0 8px var(--bad); flex:none; }
+  .dot.up { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .stxt { font-size:14.5px; }
+  .stxt small { display:block; color:var(--dim); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .btn { display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+         padding:20px 22px; text-decoration:none; color:var(--txt); transition:.15s; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .btn b { font-size:16.5px; display:block; margin-bottom:6px; }
+  .btn span { color:var(--dim); font-size:13px; line-height:1.6; }
+  .btn.primary { background:linear-gradient(135deg,#2b4a8f,#1d3560); border-color:#3f6bc9; }
+  .btn.primary:hover { filter:brightness(1.15); }
+  .note { margin-top:24px; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+          padding:16px 20px; color:var(--dim); font-size:13px; line-height:1.9; }
+  .note code { background:#23262c; border-radius:5px; padding:1px 7px; color:#8ecfff; font-size:12.5px; }
+  .step { display:inline-block; background:#232a3a; color:#8ecfff; border-radius:20px; padding:0 10px;
+          font-size:12px; margin-right:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Shop<span class="pilot">Pilot</span> · 电商导购智能体</h1>
+  <div class="sub">规划 → ReAct → Reflection ｜ 四类记忆 ｜ MCP 三原语 ｜ 25 题确定性评测</div>
+
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <div class="stxt" id="stxt">正在检测服务状态…<small id="ssub">每 3 秒自动重试</small></div>
+  </div>
+
+  <div class="grid">
+    <a class="btn primary" id="enter" href="http://localhost:8601" target="_blank">
+      <b>🛒 进入导购应用</b>
+      <span>多会话 · 流式回答 · 任务卡片 · 工具调用折叠框 · 可编辑用户画像</span>
+    </a>
+    <a class="btn" href="#" onclick="showStart();return false;">
+      <b>▶️ 启动服务</b>
+      <span>双击项目根目录的 <code style="color:#8ecfff">start.bat</code>（浏览器安全限制：网页无法直接拉起本地进程，由 bat 代劳并自动打开页面）</span>
+    </a>
+    <a class="btn" href="benchmark.bat">
+      <b>🧪 一键评测</b>
+      <span>25 题验收集 + 四项确定性指标 + token 对照实验（约 20 分钟，零裁判 token）</span>
+    </a>
+    <a class="btn" href="docs/design_review.html">
+      <b>📘 设计评审</b>
+      <span>架构取舍 / "复现 DeerFlow？"应对 / 大创对比 / 面试深挖 Q&A / 简历文案</span>
+    </a>
+    <a class="btn" href="docs/benchmark_report.md">
+      <b>📊 评测报告</b>
+      <span>最新一轮指标明细与分场景 token 归因</span>
+    </a>
+    <a class="btn" href="docs/DESIGN.md">
+      <b>📐 设计决策</b>
+      <span>8 层架构每个取舍的"为什么"与被否掉的方案</span>
+    </a>
+  </div>
+
+  <div class="note">
+    <span class="step">首次使用</span>双击 <code>start.bat</code> → 等状态灯变绿 → 点"进入导购应用"。<br>
+    <span class="step">示例问题</span>预算500以内推荐降噪耳机 ｜ 蓝牙耳机A和F怎么选 ｜ 蓝牙耳机A翻车点在哪 ｜ 蓝牙耳机A保修多久。<br>
+    <span class="step">提示</span>评测脚本与启动脚本均可单独双击运行；本页文件双击打开即可，无需服务器。
+  </div>
+</div>
+
+<script>
+  const dot = document.getElementById('dot'), stxt = document.getElementById('stxt'), ssub = document.getElementById('ssub');
+  function check() {
+    fetch('http://localhost:8601', {mode: 'no-cors'})
+      .then(() => {
+        dot.classList.add('up');
+        stxt.innerHTML = '服务运行中 · http://localhost:8601';
+        ssub.textContent = '点击右上"进入导购应用"即可开始';
+      })
+      .catch(() => {
+        dot.classList.remove('up');
+        stxt.innerHTML = '服务未启动';
+        ssub.textContent = '请双击项目根目录的 start.bat';
+      });
+  }
+  function showStart() {
+    alert('浏览器安全限制不允许网页直接启动本地进程。\n\n请：\n1. 打开项目根目录 g:\\agent_internship\n2. 双击 start.bat\n3. 回到本页，等状态灯变绿后点击"进入导购应用"');
+  }
+  check(); setInterval(check, 3000);
+</script>
+</body>
+</html>
