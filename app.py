@@ -27,15 +27,22 @@ from shoppilot.models import TeamResult
 
 st.set_page_config(page_title="ShopPilot · 电商导购智能体", page_icon="🛒", layout="wide")
 
-# ---------------- 暗色主题（参照网页版大模型的配色层次） ----------------
+# ---------------- 暗色主题（配色与字体栈对齐主流大模型 Web 端） ----------------
 st.markdown("""<style>
 #MainMenu, footer, header {visibility: hidden;}
+html, body, [class*="css"], .stApp {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "HarmonyOS Sans SC", "MiSans",
+               "Source Han Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 section[data-testid="stSidebar"] {background: #171717; border-right: 1px solid #2a2a2a;}
 section[data-testid="stSidebar"] * {color: #d4d4d4 !important;}
 [data-testid="stStatusWidget"], .stStatus {background: #1e1e1e !important; border-radius: 8px;}
 .stChatMessage {background: #202020; border: 1px solid #2c2c2c; border-radius: 12px;}
 .stExpander {background: #1b1b1b; border: 1px solid #2c2c2c; border-radius: 8px;}
-h1, h2, h3 {color: #fafafa !important;}
+h1, h2, h3 {color: #fafafa !important; font-weight: 600 !important;}
+.stMarkdown p {line-height: 1.75;}
 </style>""", unsafe_allow_html=True)
 
 
@@ -222,6 +229,13 @@ def main() -> None:
                 except Exception:
                     pass
                 a_idx += 1
+
+    # 控制台（ShopPilot.html）场景卡片经 ?q= 直达提问
+    if "q" in st.query_params and not st.session_state.get("_qp_done"):
+        st.session_state.pending_input = st.query_params["q"]
+        st.session_state._qp_done = True
+        del st.query_params["q"]
+        st.rerun()
 
     user_input = st.chat_input("输入你的购物问题，Enter 发送…")
     pending = st.session_state.pop("pending_input", None)
