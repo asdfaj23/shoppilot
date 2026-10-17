@@ -4,11 +4,13 @@ ShopPilot agents · Reflector：自检四项 + 触发一次修复
 为什么自检要确定性规则而不是再问一次 LLM（面试必问）：
   LLM 自评会"自我讨好"（自我一致性偏差）；引用编号错、数字超预算、误拒答这类错误
   用规则判断 100% 可靠且零 token——LLM 只负责规则查不出来之后的"修复"这一步。
-四项自检：
+四项自检 + 一项目标检查（对应 kamacoder「Reflection 要有明确验收标准、拦过早交付」）：
   ① 引用可验证：answer_md 里的 [n] 必须在 citations/资料列表范围内（防编造来源）；
   ② 约束满足：recommend 意图下结构化卡内商品价格不得超出用户预算；
   ③ 数字溯源：卡内出现的商品必须能在资料/任务结论里找到名字（防编造商品）；
-  ④ 误拒答：知识库有资料却回答"没有相关资料" → 误拒，触发修复。
+  ④ 误拒答：知识库有资料却回答"没有相关资料" → 误拒，触发修复；
+  ⑤ 目标覆盖：用户点名的商品必须出现在回答里（防答非所问/简称丢名），且
+     recommend/compare/review_analysis 场景必须产出结构化卡（防"半成品交付"）。
 """
 from __future__ import annotations
 
@@ -49,6 +51,14 @@ def deterministic_checks(answer_md: str, citations: list[dict], sources: list[di
         has_kb = any(not str(s.get("source", "")).startswith("任务") for s in sources)
         if has_kb and query.intent == "after_sales":
             issues.append("知识库已检索到资料却回答'没有相关资料'（误拒答）")
+
+    # ⑤ 目标覆盖 / 过早交付拦截（Reflection 的"明确验收标准"）
+    if lowered:
+        missing = [e for e in query.entities if e and e not in lowered]
+        if missing:
+            issues.append(f"用户点名的商品 {missing} 未在回答中出现（目标覆盖失败/疑似答非所问）")
+    if query.intent in ("recommend", "compare", "review_analysis") and not card:
+        issues.append("该场景应产出结构化卡但缺失（过早交付）")
     return issues
 
 

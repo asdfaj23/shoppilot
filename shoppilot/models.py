@@ -240,6 +240,7 @@ class PreferenceProfile(BaseModel):
     priorities: list[str] = Field(default_factory=list, description="在意维度，按出现频次")
     categories: list[str] = Field(default_factory=list)
     history: list[str] = Field(default_factory=list, description="最近询问，最多 20 条")
+    updated_at: str = ""             # 元数据：最近更新时间（过期可判）
 
     def observe(self, query: ShoppingQuery) -> list[str]:
         """从一次结构化查询里学偏好，返回"学到了什么"（可解释记忆：前端展示给用户看）。"""

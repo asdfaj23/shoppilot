@@ -1,13 +1,17 @@
 """
-ShopPilot ⑥ 记忆管理器（吸收 week2/memory.py 单一会话记忆的升级版）
+ShopPilot ⑥ 记忆管理器（吸收 week2/memory.py + kamacoder《Agent 的记忆》四分类设计）
 ================================================================================
-三层记忆设计（可插拔，MemoryManager 是唯一入口）：
-  1. WorkingMemory 会话滑窗 + 滚动摘要：最近 keep_recent 条保原文，更早的用 LLM 压成
-     running summary——长对话不变傻、上下文不污染、token 不白烧（week2 已验证的思路）。
-  2. PreferenceMemory 用户画像文件态记忆：跨会话持久到 data/sessions/profile_{user}.json，
-     由 ShoppingQuery 确定性写入（预算档/在意维度/品类/历史），前端可查看可编辑——
-     "可解释记忆"是本项目与 DeerFlow/hello-agents 复现品的差异点。
-  3. 会话持久化：多会话各存一个 JSON（消息 + 摘要），支撑网页版前端的多会话切换。
+四类记忆各司其职（对齐 kamacoder 记忆架构：短期/Session State/长期/RAG 不要混在一层）：
+  1. WorkingMemory 短期记忆：滑窗 + 滚动摘要——"摘要压缩而非全文保留"，丢掉噪音只留
+     目标/约束/关键证据（week2 已验证的思路）。
+  2. SessionState 结构化任务状态：不是聊天记录，是 goal/已完成/已降级/关键结论 的 JSON 状态，
+     多轮追问（"那它保修多久"）时注入 Planner 消解指代——防多步任务跑散。
+  3. PreferenceMemory 长期记忆：跨会话画像（预算档/在意维度/品类/历史），文件态持久化。
+     写入规则对齐"长期记忆要像数据库写入"：只写从 ShoppingQuery 确定性抽取的
+     **用户明确表达**（来源可靠）、更新即覆盖（冲突合并）、history/priorities 有上限
+     （噪音清理）、提供 forget() 删除入口（遗忘机制）、条目带 updated_at（过期可判）。
+  4. 外部知识库：shoppilot/rag（RAG 层），是"可查的资料"而非"记忆"——语义上分开。
+可插拔：三类记忆都可独立替换实现（文件态 → Redis/向量库），MemoryManager 是唯一入口。
 """
 from __future__ import annotations
 
@@ -93,6 +97,9 @@ class PreferenceMemory:
         return PreferenceProfile(user_id=self.user_id)
 
     def save(self) -> None:
+        from datetime import datetime
+
+        self.profile.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         self.path.write_text(self.profile.model_dump_json(indent=1), encoding="utf-8")
 
@@ -101,6 +108,25 @@ class PreferenceMemory:
         if learned:
             self.save()
         return learned
+
+    def forget(self, keys: list[str]) -> list[str]:
+        """遗忘机制：按维度删除画像（用户要求删除/前端清理入口），返回删了什么。"""
+        removed = []
+        if "budget" in keys and self.profile.budget_tier:
+            removed.append(f"预算档({self.profile.budget_tier})")
+            self.profile.budget_tier = ""
+        if "priorities" in keys and self.profile.priorities:
+            removed.append(f"在意维度({'、'.join(self.profile.priorities)})")
+            self.profile.priorities = []
+        if "categories" in keys and self.profile.categories:
+            removed.append(f"品类({'、'.join(self.profile.categories)})")
+            self.profile.categories = []
+        if "history" in keys and self.profile.history:
+            removed.append(f"历史({len(self.profile.history)}条)")
+            self.profile.history = []
+        if removed:
+            self.save()
+        return removed
 
     def render(self) -> str:
         """渲染成注入 prompt 的画像块（前端也用同一份数据展示，保证一致）。"""
@@ -112,6 +138,8 @@ class PreferenceMemory:
                  f"- 关注品类：{'、'.join(p.categories) or '未知'}"]
         if p.history:
             lines.append("- 最近询问：" + "；".join(p.history[:5]))
+        if p.updated_at:
+            lines.append(f"- 更新时间：{p.updated_at}")
         return "\n".join(lines)
 
     def update_from_ui(self, **kwargs) -> None:
@@ -135,9 +163,37 @@ class MemoryManager:
         data = self._load()
         self.title: str = data.get("title", session_id)
         self.created_at: str = data.get("created_at", "")
-        self.working = WorkingMemory(keep_recent=keep_recent, **data.get("working", {}))
+        working_data = data.get("working", {})
+        working_data.setdefault("keep_recent", keep_recent)
+        self.working = WorkingMemory(**working_data)
         self.prefs = PreferenceMemory(user_id)
         self.token_total: int = data.get("token_total", 0)
+        self.state: dict = data.get("state", {})  # SessionState：结构化任务状态（非聊天记录）
+
+    # ---------- Session State：结构化任务状态（对齐 kamacoder 记忆四分类） ----------
+    def update_state(self, goal: str, intent: str, tasks: list, key_findings: str) -> None:
+        """一次 run_team 结束后写入：goal/意图/任务清单（含降级）/关键结论。"""
+        self.state = {
+            "goal": goal[:80],
+            "intent": intent,
+            "completed_tasks": [{"id": t.task_id, "type": t.task_type,
+                                 "goal": t.goal[:60], "degraded": t.degraded}
+                                for t in tasks],
+            "key_findings": key_findings[:300],
+        }
+        self.save()
+
+    def render_state(self) -> str:
+        """渲染成 Planner 的 [任务状态] 块：多轮追问消解指代（"那它保修多久"的"它"）。"""
+        if not self.state:
+            return ""
+        tasks = self.state.get("completed_tasks", [])
+        done = "；".join(f"任务{t['id']}({t['type']}{'，已降级' if t['degraded'] else ''})：{t['goal']}"
+                         for t in tasks) or "无"
+        return (f"- 上一轮目标：{self.state.get('goal', '')}\n"
+                f"- 上一轮意图：{self.state.get('intent', '')}\n"
+                f"- 已完成任务：{done}\n"
+                f"- 已得结论：{self.state.get('key_findings', '')[:200]}")
 
     def _load(self) -> dict:
         if self.path.exists():
@@ -157,6 +213,7 @@ class MemoryManager:
                 "title": self.title,
                 "created_at": self.created_at or datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "working": self.working.to_dict(),
+                "state": self.state,
                 "token_total": self.token_total,
             }
             self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=1),

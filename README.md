@@ -1,64 +1,67 @@
-# 电商导购与评论分析多智能体系统（DeerFlow 核心范式轻量复现）
+# ShopPilot · 电商导购智能体
 
-> 求职项目：复现字节 DeerFlow 核心编排范式（Planner 任务分解 → Dispatcher 调度 → Aggregator 聚合），
-> 套电商业务场景，逐步升级为「Agent = Model + Harness」框架。
-> 模型：DeepSeek-V4.1-Flash（纯 API，无 GPU，笔记本可跑）。
+> 把已验证的 week1-4 教学代码合并重构的正式项目：用户输入"预算 500 内推荐降噪耳机 /
+> A 和 B 怎么选 / 这商品翻车点在哪 / 保修多久"，Agent 结构化抽取需求 → 并行查商品池/口碑/售后
+> 知识库 → 输出带依据的推荐清单、对比卡、避坑提示，并跨会话记住用户偏好。
 
 ## 快速开始
 
 ```bash
-# 1) 环境（已建好可跳过）
-conda create -n agent python=3.11 -y
-conda activate agent
-pip install -r requirements.txt
+# 环境：Python 3.11（conda env: agent），依赖见 requirements.txt（均已安装）
+# 1. 配置 .env（参考 .env.example）：DEEPSEEK_API_KEY / BASE_URL / MODEL
+# 2. 启动网页版前端
+D:\conda_envs\agent\python.exe -m streamlit run app.py
 
-# 2) 配置密钥：编辑根目录 .env（参考 .env.example）
-#    DEEPSEEK_API_KEY=sk-xxx
-
-# 3) 按周跑
-python week1/react_loop.py                    # Week1: 手写 ReAct Loop
-python week1/sdk_agent_demo.py                # Week1: Agents SDK 5 行版
-python week2/agent_v01.py "分析蓝牙耳机A的差评痛点并给出改进建议"   # Week2: Planner+工具+汇总
-python week2/agent_v01.py --chat              # Week2: 多轮对话（记忆压缩演示）
-python week3/mcp_client_demo.py               # Week3: MCP Server/Client 全流程
-python week3/rag/build_index.py               # Week3: 建 RAG 索引
-python week3/rag/query.py "耳机保修多久"       # Week3: 带引用 RAG 问答
-python week4/multi_agent.py "蓝牙耳机A值得买吗？差评多不多？保修政策是什么？"  # Week4: 多 Agent
-python week4/eval.py --gen && python week4/eval.py --run   # Week4: 评测闭环
-python -m streamlit run week4/app.py          # Week4: 浏览器演示
+# 3. 跑效果评测（25 题验收集 + 四项确定性指标；--compare 加 token 对照实验）
+D:\conda_envs\agent\python.exe -X utf8 benchmark.py --run --compare
 ```
 
-## 目录结构
+## 五大导购场景
+
+| 场景 | 示例输入 | 产出 |
+| --- | --- | --- |
+| 选购推荐 | "预算500以内推荐降噪耳机" | 推荐清单卡（价格/理由/口碑摘要/依据编号） |
+| 商品对比 | "蓝牙耳机A和F怎么选" | 对比维度表格 + 分场景结论 |
+| 口碑解读 | "蓝牙耳机A翻车点在哪" | 差评维度归因 + 避坑清单 |
+| 售后问答 | "蓝牙耳机A保修多久" | RAG 强制引用回答（来源可展开） |
+| 超范围拒答 | "iPhone 18 多少钱" | 诚实说明商品池外，不编造 |
+
+## 架构（8 层，单向依赖）
 
 ```
-├── config.py            # 统一配置（.env → DeepSeek 兼容 OpenAI 客户端）
-├── .env / .env.example  # 密钥（.env 已 gitignore，绝不提交）
-├── data/                # 数据层（reviews/sales CSV + knowledge/ 知识库 + 评测集）
-├── week1/               # 手写 ReAct Loop + Agents SDK + DeerFlow 架构笔记
-├── week2/               # Planner(DAG) + 记忆压缩 + 单 Agent 0.1
-├── week3/               # MCP Server/Client + FAISS+BM25 混合检索 RAG
-├── week4/               # 多 Agent + Harness 护栏 + Trace + 评测 + Streamlit + Docker
-├── notes.md             # 八股卡 + 每周检查清单 + 实验记录卡
-└── 各周 GUIDE.md        # 每个文件怎么写的、必须弄懂的点、亲手改任务、面试预案
+①config ②llm ──► ③models(Pydantic 契约) ──► ④harness/loop ⑤tools ⑥memory/observability
+                                        └──► domains/ecommerce(6工具) + rag(FAISS+BM25+RRF)
+⑦agents(planner→dispatcher→aggregator→reflector→team) ──► ⑧app.py / benchmark.py / mcp
 ```
 
-## 技术栈与卖点（简历口径，数字以评测实测为准）
+- **范式组合**（参考 kamacoder Agent 专栏）：先规划（Planner 拆 DAG）→ 中间 ReAct
+  （有界循环：三重预算/并行 tool_calls/重试退避/超时降级）→ 交付前 Reflection
+  （五项确定性自检 + 修复）；计划是**可更新的任务清单**（子任务降级触发 Replan）
+- **记忆四分类**：短期（滑窗+滚动摘要）/ Session State（结构化任务状态）/ 长期
+  （用户画像，确定性写入+遗忘机制+前端可编辑）/ 外部知识库（RAG，与记忆语义分开）
+- **MCP 三原语**：Tools（6 只读工具）/ Resources（商品池+售后文档）/ Prompts（导购模板），
+  与内部 Agent 共享同一 ToolRegistry
 
-- 复现 DeerFlow 核心编排范式：Planner 结构化 DAG / Dispatcher 按任务类型路由 /
-  Aggregator 冲突仲裁+强制引用；
-- **基于任务类型的工具预加载**：无关工具排除出上下文（Token 优化点，用 week4/traces 实测填数）；
-- 混合检索 RAG：结构感知切分 + FAISS 向量 + BM25 + RRF 融合 + 答案强制引用溯源；
-- 分层记忆：滑窗 + LLM 滚动摘要压缩；Harness 护栏：有界重试/超时降级/结果缓存；
-- MCP Server（stdio/JSON-RPC）封装业务工具，可被任意 MCP 宿主挂载；
-- LLM 生成评测集 + 三指标（正确率/引用准确率/拒答率）+ badcase 归因闭环；
-- 全链路 Trace（JSONL，接口对齐 Langfuse）+ Streamlit 演示 + Docker 一键部署。
+详细设计决策（含被否掉的方案）见 [docs/DESIGN.md](docs/DESIGN.md)；
+面试应对与简历文案见 [docs/design_review.html](docs/design_review.html)；
+效果数据见 [docs/benchmark_report.md](docs/benchmark_report.md)。
 
-## 安全须知
+## 目录速览
 
-- `.env` 含 API Key，已在 `.gitignore`；**开仓库前确认没被 track**：`git status` 不应出现 .env；
-- key 已在别处泄露过的话去 DeepSeek 后台重置。
+```
+shoppilot/
+├── models.py            # ③ Pydantic 数据契约（LLM 脏 JSON 在入口清洗）
+├── harness/             # ④⑤⑥ loop/tools/memory/observability
+├── agents/              # ⑦ planner/dispatcher/aggregator/reflector/team
+├── domains/ecommerce/   # adapter + 6 导购工具（schema 自动生成 + task_type 预加载）
+├── rag/rag_lib.py       # 混合检索 + RAG 问答（kb_dir 参数化）
+└── mcp/server.py        # FastMCP 三原语
+app.py                   # ⑧ Streamlit 暗色前端（多会话/流式/任务卡片/画像面板）
+benchmark.py             # 25 题验收集 + 四项确定性指标 + token 对照
+data/ecommerce/          # 商品池/评论/销量/知识库/题库（教学数据，可换真实 API）
+```
 
-## 后续路线
+## 面试一句话
 
-- 用 Kaggle Olist 真实数据替换 data/（见 data/README.md）
-- 接 Langfuse 云端 Trace；评测集扩到 80 case；简历数字全部实测填充
+"ReAct 适合路径不确定的任务但必须配预算与停止条件；Reflection 不是再想想而是按明确标准检查；
+规划是可更新的任务清单。我的项目三段组合落地，效果由 25 题确定性指标回归保障。"

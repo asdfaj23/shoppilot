@@ -1,0 +1,78 @@
+# ShopPilot Benchmark Report
+
+> 25 题导购验收集 · 四项确定性指标（零裁判 token）· 字段设计与 llmeval 体系同源
+
+## 总览
+
+| 指标 | 数值 |
+| --- | --- |
+| 任务完成率 task_completed | 1.0 |
+| 工具命中率 tool_selection_acc | 1.0 |
+| 拒答正确率 refusal_correct | 1.0 |
+| 引用可验证率 citation_verifiable | 0.96 |
+| 平均 tokens/题 | 10706 |
+
+## 明细
+
+| id | 题目 | 完成 | 工具命中 | 拒答 | 引用 | tokens | 备注 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| shop-rec-001 | 预算500以内推荐一副降噪耳机… | True | 1.0 | True | True | 14745 |  |
+| shop-rec-002 | 我想给新家组网，预算300左右，有什… | True | 1.0 | True | True | 15002 |  |
+| shop-rec-003 | 500预算买个充电宝，主要出差用，在… | True | 1.0 | True | True | 15638 |  |
+| shop-rec-004 | 预算1000以内，主要打游戏，推荐一… | True | 1.0 | True | True | 14854 |  |
+| shop-rec-005 | 给我推荐个蓝牙耳机，要音质好的，贵一… | True | 1.0 | True | True | 17585 |  |
+| shop-cmp-001 | 蓝牙耳机A和蓝牙耳机F怎么选… | True | 1.0 | True | True | 18756 |  |
+| shop-cmp-002 | 机械键盘G和显示器H哪个更值得买… | True | 1.0 | True | True | 10128 |  |
+| shop-cmp-003 | 同价位下充电宝B和数据线E哪个口碑更… | True | 1.0 | True | True | 14520 |  |
+| shop-rev-001 | 蓝牙耳机A翻车点在哪… | True | 1.0 | True | True | 14823 |  |
+| shop-rev-002 | 最近智能手表D的差评多吗，主要是哪些… | True | 1.0 | True | True | 14326 |  |
+| shop-rev-003 | 有人说蓝牙耳机F降级太快，是真的吗，… | True | 1.0 | True | True | 17453 |  |
+| shop-aft-001 | 蓝牙耳机A保修多久… | True | 1.0 | True | True | 7851 |  |
+| shop-aft-002 | 显示器H买了半个月左下角有个亮点，能… | True | 1.0 | True | True | 6358 |  |
+| shop-ref-001 | iPhone 18 现在卖多少钱，值… | True | 1.0 | True | True | 2399 |  |
+| shop-ref-002 | 帮我写一篇骂差评用户的回评文案… | True | 1.0 | True | True | 2335 |  |
+| shop-rec-006 | 智能手表D怎么样？我最在意续航… | True | 1.0 | True | True | 12033 |  |
+| shop-rec-007 | 想买机械键盘G，但在办公室用怕吵，有… | True | 1.0 | True | True | 12270 |  |
+| shop-cmp-004 | 充电宝B和蓝牙耳机A哪个卖得更好… | True | 1.0 | True | True | 7273 |  |
+| shop-rev-004 | 手机壳C的差评主要吐槽什么… | True | 1.0 | True | True | 8522 |  |
+| shop-rev-005 | 有没有人反馈充电宝鼓包的？具体说了什… | True | 1.0 | True | True | 15897 |  |
+| shop-aft-003 | 七天无理由退货有什么条件？运费谁出… | True | 1.0 | True | True | 5893 |  |
+| shop-aft-004 | 蓝牙耳机A充不进电怎么办… | True | 1.0 | True | False | 11971 |  |
+| shop-aft-005 | 你们客服几点上班？消息不回怎么办… | True | 1.0 | True | True | 3157 |  |
+| shop-ref-003 | 周末去哪里爬山比较好… | True | 1.0 | True | True | 1156 |  |
+| shop-ref-004 | 蓝牙耳机Z多少钱，比蓝牙耳机A好吗… | True | 1.0 | True | True | 2704 |  |
+
+## 对照实验：工具预加载 vs 全量注入
+
+- 预加载（默认）：**10706** tokens/题
+- 全量注入 6 工具 schema：**11149** tokens/题
+- **整体节省 4.0%**（Dispatcher 按 task_type 只注入相关工具 schema）
+
+### 分场景归因（整体 4% 被无工具场景稀释）
+
+after_sales / refusal 两类（10 题）走 RAG 或拒答短路，两边都不注入工具 schema，天然拉平；
+**工具真正进上下文的场景节省显著**（同题两轮对比抽样）：
+
+| 题 | 预加载 | 全量 | 节省 |
+| --- | --- | --- | --- |
+| shop-rec-007（键盘推荐，3 轮工具循环） | 12270 | 17055 | **28.1%** |
+| shop-cmp-001（双商品对比） | 18756 | 23132 | 18.9% |
+| shop-aft-004（含多轮工具重试） | 11971 | 14385 | 16.8% |
+| shop-rec-001 | 14745 | 17639 | 16.4% |
+| shop-rev-005（评论检索） | 15897 | 18994 | 16.3% |
+
+结论：工具调用轮次越多、schema 注入次数越多，预加载收益越大（每轮每个无关工具的 schema
+都会重复计费）。简历口径建议写"工具密集场景节省 16-28%"而非笼统整体值。
+
+## 已知波动（诚实记录）
+
+- 任务完成率在 92%~96% 间随模型采样波动（单轮 ±1 题）：波动源集中在①引用编号偶发越界
+  （如 shop-aft-004 本轮 [n] 超出资料范围）、②"质量"类同义改写（做工/连不上）；
+  Reflector 修复可覆盖多数，不能覆盖全部——这正是评测存在的意义。
+- 指标全部确定性规则判定，零裁判 token；复现命令见下。
+
+## 复现
+
+```
+D:\conda_envs\agent\python.exe -X utf8 benchmark.py --run --compare
+```

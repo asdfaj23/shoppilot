@@ -182,6 +182,10 @@ def sidebar() -> str:
                                      priorities=[x.strip() for x in prio.split("、") if x.strip()],
                                      categories=[x.strip() for x in cats.split("、") if x.strip()])
             st.toast("画像已保存，下一轮回答将参考")
+        if st.button("🗑 忘记我的画像", use_container_width=True):
+            removed = mem.prefs.forget(["budget", "priorities", "categories", "history"])
+            st.toast("已删除：" + ("、".join(removed) or "（画像本来为空）"))
+            st.rerun()
         if p.history:
             st.caption("最近询问：" + "；".join(p.history[:3]))
 
@@ -261,6 +265,16 @@ def main() -> None:
             elif etype == "task_end":
                 mark = "✅" if not payload.get("degraded") else "⚠️"
                 plan_box.markdown(f"- [x] {mark} 任务{payload['id']}：{payload.get('summary', '')[:80]}")
+            elif etype == "replan_start":
+                status.update(label="🔁 子任务失败，重新规划补救…")
+                plan_box.warning("部分子任务降级，Replanner 带失败证据重拆补救任务")
+            elif etype == "replan":
+                for t in payload.get("tasks", []):
+                    plan_box.markdown(f"- [ ] **[补救{t['id']}]** `{t['task_type']}` {t['goal']}")
+            elif etype == "refuse_recheck":
+                status.update(label="🛡 疑似误拒，复核中…")
+            elif etype == "pool_recheck":
+                status.update(label(f"🛡 商品池外实体 {payload.get('unknown')}，复核中…"))
             elif etype == "aggregate_end":
                 status.update(label="🧩 聚合与仲裁中…")
             elif etype == "reflect_end":

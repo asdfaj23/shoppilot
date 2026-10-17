@@ -13,3 +13,6 @@ faiss-cpu>=1.8.0
 # Week4 MCP / 演示
 mcp>=1.0.0,<2
 streamlit>=1.36.0
+
+# ShopPilot（可选：①配置层用 pydantic-settings，缺省有轻量兜底实现）
+# pydantic-settings>=2.0.0
