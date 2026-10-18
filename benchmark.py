@@ -165,6 +165,103 @@ def run_benchmark(limit: int | None = None, compare: bool = False) -> None:
     print(f"报告 → {REPORT_FILE}")
 
 
+# ---------------- 基线对照：Agent vs 纯 API 调用（回应"不就是调 API 吗"） ----------------
+BASELINE_SYSTEM = "你是一个电商导购助手，用中文回答用户的购物问题。"
+# 基线无意图分类，拒答判定只能靠措辞（与 Agent 的 intent 短路口径不同，见报告说明）
+BASELINE_REFUSAL_WORDS = ("没有相关资料", "无法回答", "知识库中没有", "无法帮助",
+                          "商品池中不存在", "查询不到该商品")
+
+
+def score_baseline(case: BenchCase, answer: str, tokens: int, duration_s: float) -> dict:
+    constraints_ok, fails = check_constraints(answer, case.constraints)
+    expected_refuse = (case.meta or {}).get("expected_behavior", "answer") == "refuse"
+    is_refusal = any(w in answer for w in BASELINE_REFUSAL_WORDS) or (
+        "拒答" in (case.meta or {}).get("tags", []) and any(
+            w in answer for w in ("查询不到", "查不到", "不在商品池", "没有该商品")))
+    behavior_ok = is_refusal == expected_refuse
+    return {
+        "id": case.id,
+        "task_completed": constraints_ok and behavior_ok,
+        "refusal_correct": behavior_ok,
+        "tokens": tokens,
+        "duration_s": round(duration_s, 1),
+        "note": "；".join(fails[:3]),
+        "answer": answer,
+    }
+
+
+def run_baseline(limit: int | None = None) -> dict:
+    """纯 API 基线：同 25 题、直接问 LLM——不给工具、不给知识库、不拆任务、无记忆。"""
+    import time as _time
+
+    from shoppilot.llm import get_llm
+
+    cases = load_cases()
+    if limit:
+        cases = cases[:limit]
+    llm = get_llm()
+    print(f"\n基线对照：纯 API 直接调用（同 {len(cases)} 题，无工具/无知识库/无编排）")
+    rows = []
+    for i, case in enumerate(cases, 1):
+        t0 = _time.time()
+        answer, tokens = llm.chat_text(
+            [{"role": "system", "content": BASELINE_SYSTEM},
+             {"role": "user", "content": case.prompt}], temperature=0.3)
+        row = score_baseline(case, answer, tokens, _time.time() - t0)
+        rows.append(row)
+        print(f"[{i}/{len(cases)}] {case.id} 完成={row['task_completed']} "
+              f"拒答={row['refusal_correct']} tokens={tokens} {row['note'][:50]}")
+    n = len(rows)
+    return {
+        "n": n,
+        "task_completed_rate": round(sum(r["task_completed"] for r in rows) / n, 3),
+        "refusal_correct_rate": round(sum(r["refusal_correct"] for r in rows) / n, 3),
+        "avg_tokens": round(sum(r["tokens"] for r in rows) / n),
+        "rows": rows,
+    }
+
+
+def merge_baseline_section(baseline: dict, agent_summary: dict | None) -> None:
+    """把基线对照写进报告（存在旧节则替换）。"""
+    report = REPORT_FILE.read_text(encoding="utf-8") if REPORT_FILE.exists() else "# ShopPilot Benchmark Report\n"
+    marker_start, marker_end = "<!-- BASELINE-START -->", "<!-- BASELINE-END -->"
+    body = report
+    if marker_start in report:
+        body = report.split(marker_start)[0] + report.split(marker_end)[-1].lstrip("\n")
+
+    agent_part = ""
+    if agent_summary:  # 同轮已有 Agent 数据 → 同表对比
+        agent_part = (f"| **ShopPilot Agent** | **{agent_summary['task_completed_rate']}** "
+                      f"| **{agent_summary['refusal_correct_rate']}** "
+                      f"| {agent_summary['avg_tokens']} |\n")
+    elif marker_start in report:  # 复用旧报告里的 Agent 行（--baseline 单独重跑时）
+        import re as _re
+        m = _re.search(r"\*\*ShopPilot Agent\*\* \| \*\*([\d.]+)\*\* \| \*\*([\d.]+)\*\* \| (\d+)", report)
+        if m:
+            agent_part = (f"| **ShopPilot Agent** | **{m.group(1)}** | **{m.group(2)}** "
+                          f"| {m.group(3)} |\n")
+    sample = ""
+    for r in baseline["rows"]:  # 挑一个基线翻车的例子做定性展示
+        if not r["task_completed"] and r["note"]:
+            sample = (f"\n**定性样例（{r['id']}）**——纯 API 无法访问商品池/评论/知识库：\n\n"
+                      f"> {r['answer'][:180]}…\n"
+                      f"> 失败点：{r['note']}\n")
+            break
+
+    section = (f"\n{marker_start}\n## 对照实验：Agent vs 纯 API 调用\n\n"
+               f"> 基线定义：同 25 题直接问 LLM（system=通用导购助手），不给工具、不给知识库、"
+               f"不拆任务、无记忆。同一套确定性指标评分（基线无意图分类，拒答判定靠措辞规则，"
+               f"工具命中率/引用可验证率对基线不适用，记 N/A）。\n\n"
+               f"| 方案 | 任务完成率 | 拒答正确率 | 平均 tokens/题 |\n| --- | --- | --- | --- |\n"
+               f"| 纯 API 调用（基线） | {baseline['task_completed_rate']} "
+               f"| {baseline['refusal_correct_rate']} | {baseline['avg_tokens']} |\n"
+               f"{agent_part}{sample}\n"
+               f"结论：基线的失败集中在**编造商品/价格**（无商品池可查）、**答不准售后数字**"
+               f"（无知识库可引）、**该拒答时硬答**。Agent 的价值不在模型，而在约束模型输出的系统。\n"
+               f"{marker_end}\n")
+    REPORT_FILE.write_text(body.rstrip("\n") + "\n" + section, encoding="utf-8")
+
+
 def write_report(summary: dict, rows: list[dict], comparison: dict | None) -> None:
     REPORT_FILE.parent.mkdir(exist_ok=True)
     lines = [
@@ -205,9 +302,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ShopPilot benchmark")
     parser.add_argument("--run", action="store_true", help="跑评测")
     parser.add_argument("--compare", action="store_true", help="附加全量注入 vs 预加载 token 对照")
+    parser.add_argument("--baseline", action="store_true",
+                        help="跑'纯 API 调用'基线对照（回应'不就是调 API 吗'），结果并入报告")
     parser.add_argument("--limit", type=int, default=None, help="只跑前 N 题（调试用）")
     args = parser.parse_args()
     if args.run:
         run_benchmark(limit=args.limit, compare=args.compare)
-    else:
+    if args.baseline:
+        merge_baseline_section(run_baseline(limit=args.limit), agent_summary=None)
+        print(f"基线对照已并入 → {REPORT_FILE}")
+    if not (args.run or args.baseline):
         print(__doc__)

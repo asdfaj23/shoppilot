@@ -4,6 +4,16 @@
 > A 和 B 怎么选 / 这商品翻车点在哪 / 保修多久"，Agent 结构化抽取需求 → 并行查商品池/口碑/售后
 > 知识库 → 输出带依据的推荐清单、对比卡、避坑提示，并跨会话记住用户偏好。
 
+## 文档导读（按需取用）
+
+| 你想… | 看这个 |
+| --- | --- |
+| 快速跑起来 / 知道怎么用 | 本页下面的「快速开始」「示例提问」 |
+| 理解架构为什么这么设计 | [docs/DESIGN.md](docs/DESIGN.md)（含被否掉的方案） |
+| 拿数据说话 / 看效果 | [docs/benchmark_report.md](docs/benchmark_report.md)（含 Agent vs 纯 API 基线对照） |
+| 准备面试 / 深挖质疑 | [docs/design_review.html](docs/design_review.html)（含"不就是调 API 吗"应对） |
+| 知道改代码的规矩 | [AGENTS.md](AGENTS.md) |
+
 ## 快速开始（三种入口）
 
 | 入口 | 操作 | 适合 |
@@ -55,9 +65,10 @@ RAG 强制引用回答，来源可展开溯源
 ## 效果评测
 
 ```bash
-# 25 题验收集 + 四项确定性指标；--compare 加工具预加载 token 对照实验
+# 25 题验收集 + 四项确定性指标；--compare 加工具预加载 token 对照；--baseline 加纯 API 基线对照
 D:\conda_envs\agent\python.exe -X utf8 benchmark.py --run --compare
-# 或双击 benchmark.bat
+D:\conda_envs\agent\python.exe -X utf8 benchmark.py --baseline
+# 或双击 benchmark.bat（含全部对照）
 ```
 
 ## 架构（8 层，单向依赖）
