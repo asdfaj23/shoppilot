@@ -19,3 +19,4 @@ shoppilot/rag/index/
 *.log
 bytedance/ 
 .playwright-cli/ 
+rednote-shoppilot/ 
