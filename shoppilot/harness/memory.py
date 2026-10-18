@@ -235,11 +235,12 @@ class MemoryManager:
 
 
 def list_sessions() -> list[dict]:
-    """侧边栏会话列表数据：[{session_id, title, mtime}]，按修改时间倒序。"""
+    """侧边栏会话列表数据：[{session_id, title, mtime}]，按修改时间倒序。
+    过滤：画像文件与 benchmark 会话（bench_*/benchfull_*）不进用户界面。"""
     out = []
     if SESSIONS_DIR.exists():
         for f in SESSIONS_DIR.glob("*.json"):
-            if f.name.startswith("profile_"):
+            if f.name.startswith(("profile_", "bench_", "benchfull_", "vref", "smoke")):
                 continue
             try:
                 d = json.loads(f.read_text(encoding="utf-8"))

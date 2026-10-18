@@ -153,9 +153,14 @@ def sidebar() -> str:
         labels = [s["title"] for s in sessions]
         sids = [s["session_id"] for s in sessions]
         current = st.session_state.get("current_session")
-        if current not in sids and sids:
-            current = sids[0]
+        if current not in sids:
+            # 每次打开应用默认进入一个全新空白会话（历史会话仍可从列表切回）
+            current = datetime.now().strftime("s_%m%d_%H%M%S_") + uuid.uuid4().hex[:4]
+            MemoryManager(current).save()
             st.session_state.current_session = current
+            sessions = list_sessions()
+            labels = [s["title"] for s in sessions]
+            sids = [s["session_id"] for s in sessions]
         if not sessions:
             current = current or "default"
         if labels:
@@ -217,6 +222,25 @@ def main() -> None:
     sid = sidebar()
     arts = load_artifacts(sid)
     history = history_messages(sid)
+
+    # 空状态欢迎页（对齐大模型首屏：问候语 + 示例问题）
+    if not history:
+        st.markdown(
+            "<div style='text-align:center; padding:36px 0 10px;'>"
+            "<div style='font-size:40px;'>🛒</div>"
+            "<h2 style='margin-top:10px;'>你好，我是 ShopPilot</h2>"
+            "<p style='color:#9aa0a6;'>会比价、看口碑、读售后，每一步都给你依据，还越用越懂你</p>"
+            "</div>", unsafe_allow_html=True)
+        cols = st.columns(2)
+        examples = [("🎁 选购推荐", "预算500以内推荐一副降噪耳机"),
+                    ("⚖️ 商品对比", "蓝牙耳机A和蓝牙耳机F怎么选"),
+                    ("⚠️ 口碑解读", "蓝牙耳机A翻车点在哪"),
+                    ("🛡️ 售后问答", "蓝牙耳机A保修多久")]
+        for i, (tag, q) in enumerate(examples):
+            with cols[i % 2]:
+                if st.button(f"{tag}\n\n{q}", key=f"welcome_{i}", use_container_width=True):
+                    st.session_state.pending_input = q
+                    st.rerun()
 
     # 重放历史（气泡）+ 绑定每轮的结构化产物
     a_idx = 0

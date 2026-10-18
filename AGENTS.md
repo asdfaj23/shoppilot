@@ -4,7 +4,7 @@
 
 ShopPilot：电商导购智能体。8 层 Agent Harness（config/llm/models 契约/harness/agents/前端），
 组合"规划→ReAct→Reflection"三范式与四类记忆分层。教学代码已归档至 `archive/week1-4`
-（只读参考，不再修改）。评测体系文档见 `docs/DESIGN.md`。
+（只读参考，不再修改）。项目全景文档见 `docs/PROJECT_GUIDE.md`（数据/架构/示例/评测/面试问答合一）。
 
 ## 示例提问（与文档/控制台/题库保持同源）
 

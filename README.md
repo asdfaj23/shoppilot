@@ -8,10 +8,10 @@
 
 | 你想… | 看这个 |
 | --- | --- |
+| **一份文档理解整个项目**（数据/架构/示例/评测/面试） | [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) ⭐ |
 | 快速跑起来 / 知道怎么用 | 本页下面的「快速开始」「示例提问」 |
-| 理解架构为什么这么设计 | [docs/DESIGN.md](docs/DESIGN.md)（含被否掉的方案） |
-| 拿数据说话 / 看效果 | [docs/benchmark_report.md](docs/benchmark_report.md)（含 Agent vs 纯 API 基线对照） |
-| 准备面试 / 深挖质疑 | [docs/design_review.html](docs/design_review.html)（含"不就是调 API 吗"应对） |
+| 看评测明细（脚本自动生成） | [docs/benchmark_report.md](docs/benchmark_report.md) |
+| 准备面试 / 深挖质疑（富文本版） | [docs/design_review.html](docs/design_review.html) |
 | 知道改代码的规矩 | [AGENTS.md](AGENTS.md) |
 
 ## 快速开始（三种入口）
