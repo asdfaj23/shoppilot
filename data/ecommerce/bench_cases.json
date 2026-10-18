@@ -9,15 +9,32 @@
       "prompt": "预算500以内推荐一副降噪耳机",
       "reference": "预算500内可推荐：蓝牙耳机A（349元，35dB降噪，4.3分）为性价比首选；蓝牙耳机F（899元）超预算不应推荐。应说明蓝牙耳机A的口碑与推荐理由。",
       "constraints": [
-        {"type": "must_contain", "value": ["蓝牙耳机A"]},
-        {"type": "must_not_contain", "value": ["推荐蓝牙耳机F"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机A"
+          ]
+        },
+        {
+          "type": "must_not_contain",
+          "value": [
+            "推荐蓝牙耳机F"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_products"],
+        "expected_tools": [
+          "search_products"
+        ],
         "expected_behavior": "answer",
         "rationale": "预算约束筛选 + 推荐理由，考察是否推荐超预算商品",
-        "tags": ["选购推荐"]
+        "tags": [
+          "选购推荐"
+        ]
       }
     },
     {
@@ -28,14 +45,27 @@
       "prompt": "我想给新家组网，预算300左右，有什么路由器推荐吗",
       "reference": "路由器I（249元，WiFi6 AX3000，支持Mesh，4.4分）在预算内，应给出推荐理由（信号/组网/散热）。",
       "constraints": [
-        {"type": "must_contain", "value": ["路由器I"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "路由器I"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_products", "get_product_info"],
+        "expected_tools": [
+          "search_products",
+          "get_product_info"
+        ],
         "expected_behavior": "answer",
         "rationale": "跨品类推荐，考察品类识别（网络设备）",
-        "tags": ["选购推荐"]
+        "tags": [
+          "选购推荐"
+        ]
       }
     },
     {
@@ -46,14 +76,29 @@
       "prompt": "500预算买个充电宝，主要出差用，在意安全",
       "reference": "充电宝B（129元）在预算内；安全方面应提示其差评中有鼓包记录（充电到80%断电、一个月鼓包），建议关注3C认证与鼓包停用知识。",
       "constraints": [
-        {"type": "must_contain", "value": ["充电宝B", "鼓包"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "充电宝B",
+            "鼓包"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_products", "query_product_reviews"],
+        "expected_tools": [
+          "search_products",
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "推荐与口碑结合，在意维度=安全应触发避坑提示",
-        "tags": ["选购推荐", "避坑"]
+        "tags": [
+          "选购推荐",
+          "避坑"
+        ]
       }
     },
     {
@@ -64,14 +109,27 @@
       "prompt": "预算1000以内，主要打游戏，推荐一个显示器或键盘",
       "reference": "显示器H（1099元）超预算不推荐，机械键盘G（329元）在预算内应推荐；两者都提时应指出显示器超预算。",
       "constraints": [
-        {"type": "must_contain", "value": ["机械键盘G"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "机械键盘G"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_products"],
+        "expected_tools": [
+          "search_products"
+        ],
         "expected_behavior": "answer",
         "rationale": "多品类+预算硬约束，考察是否守住1000上限",
-        "tags": ["选购推荐", "预算约束"]
+        "tags": [
+          "选购推荐",
+          "预算约束"
+        ]
       }
     },
     {
@@ -82,14 +140,27 @@
       "prompt": "给我推荐个蓝牙耳机，要音质好的，贵一点没关系",
       "reference": "蓝牙耳机F（899元，LDAC高解析，4.6分）应被优先推荐，蓝牙耳机A作为平价备选。",
       "constraints": [
-        {"type": "must_contain", "value": ["蓝牙耳机F"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机F"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_products", "get_product_info"],
+        "expected_tools": [
+          "search_products",
+          "get_product_info"
+        ],
         "expected_behavior": "answer",
         "rationale": "无预算上限+在意音质，考察画像维度应用",
-        "tags": ["选购推荐"]
+        "tags": [
+          "选购推荐"
+        ]
       }
     },
     {
@@ -100,14 +171,28 @@
       "prompt": "蓝牙耳机A和蓝牙耳机F怎么选",
       "reference": "应输出维度对比（价格349 vs 899、降噪35dB vs 45dB、续航、保修12 vs 24个月），并给出分场景结论：预算敏感选A，追求音质降噪选F。",
       "constraints": [
-        {"type": "must_contain", "value": ["蓝牙耳机A", "蓝牙耳机F"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机A",
+            "蓝牙耳机F"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["get_product_info", "query_product_reviews"],
+        "expected_tools": [
+          "get_product_info",
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "对比卡场景：维度表格+结论",
-        "tags": ["商品对比"]
+        "tags": [
+          "商品对比"
+        ]
       }
     },
     {
@@ -118,14 +203,27 @@
       "prompt": "机械键盘G和显示器H哪个更值得买",
       "reference": "两者品类不同（外设），应指出不可直接对比或按用途分别说明，机械键盘G评分4.7更高且便宜。",
       "constraints": [
-        {"type": "must_contain", "value": ["机械键盘G", "显示器H"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "机械键盘G",
+            "显示器H"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["get_product_info"],
+        "expected_tools": [
+          "get_product_info"
+        ],
         "expected_behavior": "answer",
         "rationale": "跨品类对比的边界处理",
-        "tags": ["商品对比"]
+        "tags": [
+          "商品对比"
+        ]
       }
     },
     {
@@ -136,14 +234,29 @@
       "prompt": "同价位下充电宝B和数据线E哪个口碑更好",
       "reference": "应基于差评率对比：数据线E差评集中在质量（接触不良/开裂），充电宝B差评集中在描述不符与质量（鼓包），给出数据支持的结论。",
       "constraints": [
-        {"type": "must_contain", "value": ["充电宝B", "数据线E"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "充电宝B",
+            "数据线E"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["query_product_reviews", "search_reviews"],
+        "expected_tools": [
+          "query_product_reviews",
+          "search_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "口碑维度对比，差评归因",
-        "tags": ["商品对比", "口碑解读"]
+        "tags": [
+          "商品对比",
+          "口碑解读"
+        ]
       }
     },
     {
@@ -154,15 +267,38 @@
       "prompt": "蓝牙耳机A翻车点在哪",
       "reference": "应归因差评维度：音质（杂音/破音）、质量（左耳连不上）、描述不符（宣传降噪与实际不符）、续航缩水（实测约4小时 vs 宣传6小时），并给出避坑建议。",
       "constraints": [
-        {"type": "must_contain", "value": ["音质"]},
-        {"type": "must_contain_any", "value": ["质量", "做工", "连不上", "左耳", "破音"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "音质"
+          ]
+        },
+        {
+          "type": "must_contain_any",
+          "value": [
+            "质量",
+            "做工",
+            "连不上",
+            "左耳",
+            "破音"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["query_product_reviews", "daily_bad_review_trend"],
+        "expected_tools": [
+          "query_product_reviews",
+          "daily_bad_review_trend"
+        ],
         "expected_behavior": "answer",
         "rationale": "差评维度归因场景",
-        "tags": ["口碑解读", "避坑"]
+        "tags": [
+          "口碑解读",
+          "避坑"
+        ]
       }
     },
     {
@@ -173,14 +309,27 @@
       "prompt": "最近智能手表D的差评多吗，主要是哪些问题",
       "reference": "应结合差评数量与维度（续航缩水、质量、客服退款慢、兼容性）回答，最好有趋势或比例数据。",
       "constraints": [
-        {"type": "must_contain", "value": ["智能手表D"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "智能手表D"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["query_product_reviews", "daily_bad_review_trend"],
+        "expected_tools": [
+          "query_product_reviews",
+          "daily_bad_review_trend"
+        ],
         "expected_behavior": "answer",
         "rationale": "口碑解读场景，考察工具命中",
-        "tags": ["口碑解读"]
+        "tags": [
+          "口碑解读"
+        ]
       }
     },
     {
@@ -191,14 +340,27 @@
       "prompt": "有人说蓝牙耳机F降级太快，是真的吗，还有什么吐槽",
       "reference": "评论中有'降价太快刚买一周就降了100'与'耳罩偏小夹耳朵'等吐槽，同时也有大量好评（降噪/音质/售后换新），应平衡呈现。",
       "constraints": [
-        {"type": "must_contain", "value": ["蓝牙耳机F"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机F"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_reviews", "query_product_reviews"],
+        "expected_tools": [
+          "search_reviews",
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "关键词搜评论原文场景",
-        "tags": ["口碑解读"]
+        "tags": [
+          "口碑解读"
+        ]
       }
     },
     {
@@ -209,15 +371,34 @@
       "prompt": "蓝牙耳机A保修多久",
       "reference": "整机保修12个月，电池保修6个月（产品手册），质量问题免费换新，人为损坏收费维修。",
       "constraints": [
-        {"type": "must_contain_any", "value": ["12个月", "12 个月", "一年", "保修一年"]},
-        {"type": "must_contain", "value": ["电池"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain_any",
+          "value": [
+            "12个月",
+            "12 个月",
+            "一年",
+            "保修一年"
+          ]
+        },
+        {
+          "type": "must_contain",
+          "value": [
+            "电池"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "answer",
         "rationale": "售后问答 RAG 场景，引用产品手册",
-        "tags": ["售后问答", "RAG引用"]
+        "tags": [
+          "售后问答",
+          "RAG引用"
+        ]
       }
     },
     {
@@ -228,14 +409,25 @@
       "prompt": "显示器H买了半个月左下角有个亮点，能退吗",
       "reference": "应结合知识库：15天内非人为质量故障可免费换新；但多数品牌3个以内亮点不属质量问题（选购指南），应说明这一冲突并给出建议（申请平台介入或与客服协商）。",
       "constraints": [
-        {"type": "must_contain", "value": ["亮点"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "亮点"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "answer",
         "rationale": "售后RAG+知识冲突仲裁",
-        "tags": ["售后问答", "RAG引用"]
+        "tags": [
+          "售后问答",
+          "RAG引用"
+        ]
       }
     },
     {
@@ -246,14 +438,24 @@
       "prompt": "iPhone 18 现在卖多少钱，值得入手吗",
       "reference": "商品池与知识库均无 iPhone，应诚实说明查询不到该商品，不得编造价格。",
       "constraints": [
-        {"type": "must_not_contain", "value": ["元"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_not_contain",
+          "value": [
+            "元"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "refuse",
         "rationale": "超范围拒答场景：商品池外（拒答短路，不调工具）",
-        "tags": ["拒答"]
+        "tags": [
+          "拒答"
+        ]
       }
     },
     {
@@ -264,13 +466,18 @@
       "prompt": "帮我写一篇骂差评用户的回评文案",
       "reference": "超出导购助手职责且不当，应礼貌拒绝并引导到正当售后场景。",
       "constraints": [
-        {"type": "language", "value": "zh"}
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "refuse",
         "rationale": "超范围拒答场景：职责外请求",
-        "tags": ["拒答"]
+        "tags": [
+          "拒答"
+        ]
       }
     },
     {
@@ -281,14 +488,29 @@
       "prompt": "智能手表D怎么样？我最在意续航",
       "reference": "应推荐智能手表D（599元，标称14天续航），但必须提示其口碑中续航是差评重灾区（标称14天实际4天），给避坑建议。",
       "constraints": [
-        {"type": "must_contain", "value": ["智能手表D", "续航"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "智能手表D",
+            "续航"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["get_product_info", "query_product_reviews"],
+        "expected_tools": [
+          "get_product_info",
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "在意维度与口碑矛盾时的平衡呈现",
-        "tags": ["选购推荐", "避坑"]
+        "tags": [
+          "选购推荐",
+          "避坑"
+        ]
       }
     },
     {
@@ -299,15 +521,36 @@
       "prompt": "想买机械键盘G，但在办公室用怕吵，有什么要注意的",
       "reference": "应推荐机械键盘G（329元，Gasket结构）并提示噪音差评（办公室慎选、轴体段落感吵），可建议选静音轴或厚垫。",
       "constraints": [
-        {"type": "must_contain", "value": ["机械键盘G"]},
-        {"type": "must_contain_any", "value": ["噪音", "吵", "静音"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "机械键盘G"
+          ]
+        },
+        {
+          "type": "must_contain_any",
+          "value": [
+            "噪音",
+            "吵",
+            "静音"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["get_product_info", "query_product_reviews"],
+        "expected_tools": [
+          "get_product_info",
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "使用场景约束（办公室）+噪音差评避坑",
-        "tags": ["选购推荐", "避坑"]
+        "tags": [
+          "选购推荐",
+          "避坑"
+        ]
       }
     },
     {
@@ -318,14 +561,26 @@
       "prompt": "充电宝B和蓝牙耳机A哪个卖得更好",
       "reference": "应调用销量排行：数码配件品类中蓝牙耳机A月销15230（第2）高于充电宝B 9870（第4），结论必须有销量数字支撑。",
       "constraints": [
-        {"type": "must_contain", "value": ["蓝牙耳机A"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机A"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["query_sales_rank"],
+        "expected_tools": [
+          "query_sales_rank"
+        ],
         "expected_behavior": "answer",
         "rationale": "销量对比场景，考察 query_sales_rank 命中",
-        "tags": ["商品对比"]
+        "tags": [
+          "商品对比"
+        ]
       }
     },
     {
@@ -336,14 +591,26 @@
       "prompt": "手机壳C的差评主要吐槽什么",
       "reference": "差评归因：质量（边角开裂、孔位不准）、描述不符（颜色偏深、质感粗糙）、客服（答非所问），比例上质量最多。",
       "constraints": [
-        {"type": "must_contain", "value": ["手机壳C"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "手机壳C"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["query_product_reviews"],
+        "expected_tools": [
+          "query_product_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "口碑解读场景（基础）",
-        "tags": ["口碑解读"]
+        "tags": [
+          "口碑解读"
+        ]
       }
     },
     {
@@ -354,14 +621,27 @@
       "prompt": "有没有人反馈充电宝鼓包的？具体说了什么",
       "reference": "应搜到原文'充到80%就断电用了一个月还鼓包了'（充电宝B，1星/质量），并提示鼓包有安全隐患应停用。",
       "constraints": [
-        {"type": "must_contain", "value": ["鼓包"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain",
+          "value": [
+            "鼓包"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
-        "expected_tools": ["search_reviews"],
+        "expected_tools": [
+          "search_reviews"
+        ],
         "expected_behavior": "answer",
         "rationale": "关键词搜评论原文场景（search_reviews 命中）",
-        "tags": ["口碑解读", "避坑"]
+        "tags": [
+          "口碑解读",
+          "避坑"
+        ]
       }
     },
     {
@@ -372,15 +652,33 @@
       "prompt": "七天无理由退货有什么条件？运费谁出",
       "reference": "签收7天内、不影响二次销售（吊牌完整配件齐全）；非质量问题邮费买家承担，质量问题卖家承担；验收后3个工作日原路退回。",
       "constraints": [
-        {"type": "must_contain_any", "value": ["7天", "七天"]},
-        {"type": "must_contain_any", "value": ["二次销售", "吊牌"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain_any",
+          "value": [
+            "7天",
+            "七天"
+          ]
+        },
+        {
+          "type": "must_contain_any",
+          "value": [
+            "二次销售",
+            "吊牌"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "answer",
         "rationale": "售后问答 RAG 场景（退换货政策）",
-        "tags": ["售后问答", "RAG引用"]
+        "tags": [
+          "售后问答",
+          "RAG引用"
+        ]
       }
     },
     {
@@ -391,14 +689,26 @@
       "prompt": "蓝牙耳机A充不进电怎么办",
       "reference": "应给出手册排查步骤：清洁金属触点（干燥棉签）、检查充电线是否支持5V/1A以上输出；触点脏污是最常见原因。",
       "constraints": [
-        {"type": "must_contain_any", "value": ["触点", "充电线"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain_any",
+          "value": [
+            "触点",
+            "充电线"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "answer",
         "rationale": "售后问答 RAG 场景（产品手册故障排查）",
-        "tags": ["售后问答", "RAG引用"]
+        "tags": [
+          "售后问答",
+          "RAG引用"
+        ]
       }
     },
     {
@@ -409,14 +719,28 @@
       "prompt": "你们客服几点上班？消息不回怎么办",
       "reference": "在线客服 9:00-21:00 节假日不休；24小时未回复可拨打热线，超时未解决可申请平台介入。",
       "constraints": [
-        {"type": "must_contain_any", "value": ["9:00-21:00", "9点", "21点", "热线"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_contain_any",
+          "value": [
+            "9:00-21:00",
+            "9点",
+            "21点",
+            "热线"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "answer",
         "rationale": "售后问答 RAG 场景（客服响应）",
-        "tags": ["售后问答", "RAG引用"]
+        "tags": [
+          "售后问答",
+          "RAG引用"
+        ]
       }
     },
     {
@@ -427,13 +751,18 @@
       "prompt": "周末去哪里爬山比较好",
       "reference": "与导购完全无关，应礼貌说明职责范围并引导回导购场景，不得跑题回答爬山建议。",
       "constraints": [
-        {"type": "language", "value": "zh"}
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "refuse",
         "rationale": "超范围拒答场景：无关闲聊（防跑题）",
-        "tags": ["拒答"]
+        "tags": [
+          "拒答"
+        ]
       }
     },
     {
@@ -444,14 +773,101 @@
       "prompt": "蓝牙耳机Z多少钱，比蓝牙耳机A好吗",
       "reference": "商品池不存在蓝牙耳机Z，应说明查询不到该商品，不得编造价格或参数；可顺带介绍蓝牙耳机A。",
       "constraints": [
-        {"type": "must_not_contain", "value": ["蓝牙耳机Z是", "蓝牙耳机Z售价"]},
-        {"type": "language", "value": "zh"}
+        {
+          "type": "must_not_contain",
+          "value": [
+            "蓝牙耳机Z是",
+            "蓝牙耳机Z售价"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
       ],
       "meta": {
         "expected_tools": [],
         "expected_behavior": "refuse",
         "rationale": "超范围拒答场景：库外型号（防编造）",
-        "tags": ["拒答"]
+        "tags": [
+          "拒答"
+        ]
+      }
+    },
+    {
+      "id": "shop-rec-008",
+      "dimension": "agent",
+      "task_type": "agent_tool",
+      "difficulty": "medium",
+      "prompt": "我急用，预算500以内推荐个降噪耳机，最好明天就能到",
+      "reference": "应优先推荐次日达（delivery_days=1）的蓝牙耳机A（349元，1天达），并在推荐理由里提到物流时效。不应推荐需要3-4天的型号。",
+      "constraints": [
+        {
+          "type": "must_contain",
+          "value": [
+            "蓝牙耳机A"
+          ]
+        },
+        {
+          "type": "must_contain",
+          "value": [
+            "次日达",
+            "1天"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
+      ],
+      "meta": {
+        "expected_tools": [
+          "recommend_products"
+        ],
+        "expected_behavior": "answer",
+        "rationale": "物流时效维度：急用场景下时效应成为排序关键信号",
+        "tags": [
+          "选购推荐",
+          "物流时效"
+        ]
+      }
+    },
+    {
+      "id": "shop-multi-001",
+      "dimension": "agent",
+      "task_type": "agent_tool",
+      "difficulty": "hard",
+      "prompt": "（上一轮：用户问过预算500的降噪耳机，已推荐蓝牙耳机A）顺带问一下，除了耳机是不是还得买个充电线？有推荐吗",
+      "reference": "应识别为上一轮的配套需求，推荐数据线E（39元，编织60W快充），并说明是给蓝牙耳机A配套的快充线；不应重新推荐耳机。",
+      "constraints": [
+        {
+          "type": "must_contain",
+          "value": [
+            "数据线E"
+          ]
+        },
+        {
+          "type": "must_not_contain",
+          "value": [
+            "重新推荐蓝牙耳机F"
+          ]
+        },
+        {
+          "type": "language",
+          "value": "zh"
+        }
+      ],
+      "meta": {
+        "expected_tools": [
+          "recommend_products",
+          "get_product_info"
+        ],
+        "expected_behavior": "answer",
+        "rationale": "多轮槽位继承：配套配件识别 + 预算/在意维度继承",
+        "tags": [
+          "多轮会话",
+          "配套推荐"
+        ]
       }
     }
   ]

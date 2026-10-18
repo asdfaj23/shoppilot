@@ -73,11 +73,27 @@ RAG 强制引用回答，来源可展开溯源
 ## 效果评测
 
 ```bash
-# 25 题验收集 + 四项确定性指标；--compare 加工具预加载 token 对照；--baseline 加纯 API 基线对照
+# 27 题验收集 + 四项确定性指标；--compare 加工具预加载 token 对照；--baseline 加纯 API 基线对照
 D:\conda_envs\agent\python.exe -X utf8 benchmark.py --run --compare
 D:\conda_envs\agent\python.exe -X utf8 benchmark.py --baseline
 # 或双击 benchmark.bat（含全部对照）
 ```
+
+## 设计原则（论文级表达）
+
+> 一句话：**LLM 负责"理解和表达"，确定性代码负责"计算和校验"。** Agent 系统的价值不是让 LLM 更强，而是用工程护栏把它的不稳定性关进笼子。
+
+| 原则 | 落地 |
+|---|---|
+| **确定性优先** | 能写死的绝不交给 LLM：七维打分在工具内、Reflection 全是纯函数规则（零 token、可回归） |
+| **契约兜底** | LLM 输出永远是脏的，在 `models.py` 入口用 Pydantic `field_validator` 清洗一次 |
+| **单一事实源** | 工具 schema 由 Pydantic args 自动派生 OpenAI schema，不手写、不漂移 |
+| **失败降级** | 三重预算（步数/token/成本）+ 超时降级 + 子任务独立失败，不让整体炸掉 |
+| **可观测可复盘** | JSONL trace + 分步 token 归因，badcase 可定位到具体某一步 |
+
+**被否掉的方案**（为什么不上）：MemGPT 式 LLM 自管记忆（丢实体）、Milvus 向量库（小规模没必要）、多智能体>3角色（窄域调试地狱）、自动画像推断（推断错翻车）、32K长上下文替代RAG（不可控）。
+
+完整设计决策（含权衡）见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ⭐
 
 ## 架构（8 层，单向依赖）
 
@@ -90,9 +106,17 @@ D:\conda_envs\agent\python.exe -X utf8 benchmark.py --baseline
 - **范式组合**（参考 kamacoder Agent 专栏）：先规划（Planner 拆 DAG）→ 中间 ReAct
   （有界循环：三重预算/并行 tool_calls/重试退避/超时降级）→ 交付前 Reflection
   （五项确定性自检 + 修复）；计划是**可更新的任务清单**（子任务降级触发 Replan）
-- **记忆四分类**：短期（滑窗+滚动摘要）/ Session State（结构化任务状态）/ 长期
-  （用户画像，确定性写入+遗忘机制+前端可编辑）/ 外部知识库（RAG，与记忆语义分开）
-- **MCP 三原语**：Tools（6 只读工具）/ Resources（商品池+售后文档）/ Prompts（导购模板），
+- **推荐排序（企业落地核心）**：七维加权打分放在工具内（非 LLM 算）——
+  价格贴合 13% / 平台评分 16% / 评论均分 10% / 销量热度 8% / 好评匹配 22% /
+  差评风险 18% / **物流时效 13%**（次日达是电商转化关键信号）；输出带得分构成、
+  好评/差评原文、decision_reason 草稿，LLM 只负责"讲"不负责"算"
+- **多轮会话状态**：三层记忆（短期滑窗+滚动摘要 / Planner 每轮重抽槽位 / 长期 Markdown
+  追加式）；Planner prompt 显式规定"顺带买配件/配套关系"时继承上一轮预算与在意维度
+  （如"买了蓝牙耳机A → 顺便买充电线"自动识别为配套场景）
+- **知识库 RAG（无 GPU）**：TF-IDF char n-gram 向量 + BM25 双路召回 + RRF 融合，
+  按 Markdown 标题切 chunk；换 bge-small-zh 只需实现 encode() 接口；强制引用溯源，
+  资料不足诚实拒答
+- **MCP 三原语**：Tools（7 只读工具）/ Resources（商品池+售后文档）/ Prompts（导购模板），
   与内部 Agent 共享同一 ToolRegistry
 
 详细设计决策（含被否掉的方案）见 [docs/DESIGN.md](docs/DESIGN.md)；

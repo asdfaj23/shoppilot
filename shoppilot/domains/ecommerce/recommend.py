@@ -10,6 +10,7 @@ ShopPilot domains/ecommerce · 推荐打分（用户选择理由的可解释建�
   ④ 销量热度 月销量归一（大众选择的统计信号）
   ⑤ 好评匹配 好评主题是否命中用户在意维度（降噪/续航/拍照…）
   ⑥ 差评风险 1 - 差评率，并对"集中在关键维度"的差评追加惩罚
+  ⑦ 物流时效 次日达>2-3天>慢递（电商转化关键信号，急用决策依据）
 
 输出：总分 + 分项得分 + 优点(好评原文) + 缺点(差评原文) + 选择理由 decision_reason
 """
@@ -22,8 +23,8 @@ from pydantic import BaseModel, Field
 
 from shoppilot.domains.ecommerce import adapter as domain
 
-WEIGHTS = {"price": 0.15, "rating": 0.18, "review_avg": 0.12, "popularity": 0.10,
-           "pros": 0.25, "cons": 0.20}
+WEIGHTS = {"price": 0.13, "rating": 0.16, "review_avg": 0.10, "popularity": 0.08,
+           "pros": 0.22, "cons": 0.18, "delivery": 0.13}
 
 # 在意维度 → (卖点关键词, 好评关键词)  卖点用于硬召回，好评用于软加分
 CONCERN_MAP = {
@@ -106,11 +107,18 @@ def recommend_products(category: str = "", budget_max: float | None = None,
     else:
         df["budget_n"] = 0.5
 
+    # 物流时效归一化：1天=1.0（最快），4天=0.25；次日达是电商转化关键信号
+    if "delivery_days" in df.columns:
+        df["deliver_n"] = (1 - (df["delivery_days"].clip(1, 5) - 1) / 4).clip(0, 1)
+    else:
+        df["deliver_n"] = 0.5
+
     concerns = concerns or []
     agg = review_aggregates(concerns)
     weight_of = {"价格(预算贴合)": WEIGHTS["price"], "平台评分": WEIGHTS["rating"],
                  "评论均分": WEIGHTS["review_avg"], "销量热度": WEIGHTS["popularity"],
-                 "好评匹配": WEIGHTS["pros"], "差评风险(1-差评率)": WEIGHTS["cons"]}
+                 "好评匹配": WEIGHTS["pros"], "差评风险(1-差评率)": WEIGHTS["cons"],
+                 "物流时效": WEIGHTS["delivery"]}
 
     results = []
     for row in df.itertuples():
@@ -145,6 +153,7 @@ def recommend_products(category: str = "", budget_max: float | None = None,
             "销量热度": WEIGHTS["popularity"] * row.pop_n,
             "好评匹配": WEIGHTS["pros"] * pros_n,
             "差评风险(1-差评率)": WEIGHTS["cons"] * cons_n,
+            "物流时效": WEIGHTS["delivery"] * row.deliver_n,
         }
         total = sum(parts.values())
 
@@ -159,6 +168,11 @@ def recommend_products(category: str = "", budget_max: float | None = None,
             reasons.append(f"平台评分 {row.rating} 属高分档")
         if row.price <= (budget_max or row.price):
             reasons.append(f"价格在预算内（¥{int(row.price)}）")
+        ddays = int(getattr(row, "delivery_days", 2))
+        if ddays <= 1:
+            reasons.append("次日达，物流快")
+        elif ddays >= 4:
+            warnings.append(f"物流时效 {ddays} 天，急用慎选")
 
         warnings = []
         if a and a["bad_rate"] >= 0.3:
@@ -177,6 +191,7 @@ def recommend_products(category: str = "", budget_max: float | None = None,
             "name": row.name, "category": row.category, "price": float(row.price),
             "rating": float(row.rating), "sales_month": int(row.sales_month),
             "warranty_months": int(row.warranty_months),
+            "delivery_days": int(getattr(row, "delivery_days", 2)),
             "review_avg": round(a["avg"], 2) if a else None,
             "bad_rate": round(a["bad_rate"], 3) if a else None,
             "total_score": round(total, 3),
@@ -191,7 +206,7 @@ def recommend_products(category: str = "", budget_max: float | None = None,
     return json.dumps({
         "weights": WEIGHTS, "concerns": concerns, "candidates": len(results),
         "recommendations": results[:limit],
-        "note": "评分维度=价格/平台评分/评论均分/销量/好评匹配/差评风险；decision_reason 为可直接引用的选择理由",
+        "note": "评分维度=价格/平台评分/评论均分/销量/好评匹配/差评风险/物流时效；decision_reason 为可直接引用的选择理由",
     }, ensure_ascii=False)
 
 

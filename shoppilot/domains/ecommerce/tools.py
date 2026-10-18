@@ -170,7 +170,7 @@ def register_all(reg: ToolRegistry | None = None) -> ToolRegistry:
     reg = reg or registry
     reg.register("recommend_products", recommend.recommend_products,
                  "按用户约束（品类/预算/在意维度）做可解释加权打分推荐：价格贴合·平台评分·评论均分·"
-                 "销量热度·好评匹配·差评风险六维打分，输出得分构成、真实好评/差评原文与选择理由。"
+                 "销量热度·好评匹配·差评风险·物流时效七维打分，输出得分构成、真实好评/差评原文与选择理由。"
                  "任何选购推荐类问题优先调它（比单纯筛选更准）。",
                  recommend.RecommendArgs, ["data_query"])
     reg.register("search_products", search_products,
