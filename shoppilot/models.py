@@ -16,7 +16,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 # ---------------- 意图与查询 ----------------
-Intent = Literal["recommend", "compare", "review_analysis", "after_sales", "out_of_scope"]
+Intent = Literal["recommend", "compare", "review_analysis", "after_sales", "research", "out_of_scope"]
 TaskType = Literal["data_query", "review_analysis", "knowledge_qa", "synthesis"]
 
 
@@ -193,7 +193,28 @@ class CaveatList(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
 
 
-StructuredCard = Recommendation | CompareCard | CaveatList
+class ResearchReport(BaseModel):
+    """深度研究报告（对应 DeepResearch 模式：多源取证 + 引用 + 结构化结论）。"""
+    kind: Literal["research"] = "research"
+    topic: str = ""
+    conclusion: str = ""                       # 一段式结论（直接回答研究问题）
+    candidates: list[dict] = Field(default_factory=list,
+                                    description="候选对比 [{name, price, score, verdict}]")
+    evidence: list[dict] = Field(default_factory=list,
+                                 description="证据条目 [{claim, source, citation}]")
+    risks: list[str] = Field(default_factory=list, description="风险与避坑点")
+    advice: list[str] = Field(default_factory=list, description="购买/行动建议")
+    data_window: str = ""                      # 数据截止时间（诚实标注）
+    citations: list[Citation] = Field(default_factory=list)
+
+    @field_validator("candidates", "evidence", mode="before")
+    @classmethod
+    def _rows(cls, v):
+        return [{str(k).strip(): str(x).strip() for k, x in (row or {}).items()}
+                for row in (v or []) if isinstance(row, dict)]
+
+
+StructuredCard = Recommendation | CompareCard | CaveatList | ResearchReport
 
 
 # ---------------- 任务级结果 ----------------
@@ -216,10 +237,12 @@ class TeamResult(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
     tasks: list[SubTaskResult] = Field(default_factory=list)
     tokens: int = 0
+    token_breakdown: dict[str, str] = Field(default_factory=dict,
+                                              description="分步 token 归因，如 {planner: '771 (7%)'}")
     duration_s: float = 0.0
     degradations: list[str] = Field(default_factory=list)
     reflect_issues: list[str] = Field(default_factory=list)
-    learned: list[str] = Field(default_factory=list, description="本轮画像学到了什么（可解释记忆）")
+    report_file: str = Field(default="", description="研究报告 Markdown 存档路径（research 意图）")
     trace_file: str = ""
 
     @field_validator("citations", mode="before")
@@ -231,38 +254,6 @@ class TeamResult(BaseModel):
                 out.append(Citation(no=int(c.get("no", 0)), source=str(c.get("source", "")),
                                     heading=str(c.get("heading", "")), text=str(c.get("text", ""))))
         return [c for c in out if c.source]
-
-
-# ---------------- 用户画像（文件态记忆） ----------------
-class PreferenceProfile(BaseModel):
-    user_id: str = "default"
-    budget_tier: str = ""            # 预算档：<300 / 300-800 / 800+
-    priorities: list[str] = Field(default_factory=list, description="在意维度，按出现频次")
-    categories: list[str] = Field(default_factory=list)
-    history: list[str] = Field(default_factory=list, description="最近询问，最多 20 条")
-    updated_at: str = ""             # 元数据：最近更新时间（过期可判）
-
-    def observe(self, query: ShoppingQuery) -> list[str]:
-        """从一次结构化查询里学偏好，返回"学到了什么"（可解释记忆：前端展示给用户看）。"""
-        learned: list[str] = []
-        if query.budget_max:
-            tier = "<300" if query.budget_max < 300 else ("300-800" if query.budget_max <= 800 else "800+")
-            if tier != self.budget_tier:
-                self.budget_tier = tier
-                learned.append(f"预算档更新为 {tier}")
-        for c in query.concerns:
-            if c not in self.priorities:
-                self.priorities.append(c)
-                learned.append(f"新增在意维度：{c}")
-        if query.category and query.category not in self.categories:
-            self.categories.append(query.category)
-            learned.append(f"新增关注品类：{query.category}")
-        if query.raw_text and query.raw_text not in self.history:
-            self.history.insert(0, query.raw_text[:60])
-            self.history = self.history[:20]
-        self.priorities = self.priorities[:8]
-        self.categories = self.categories[:8]
-        return learned
 
 
 # ---------------- Benchmark ----------------

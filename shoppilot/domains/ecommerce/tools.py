@@ -16,6 +16,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from shoppilot.domains.ecommerce import adapter as domain
+from shoppilot.domains.ecommerce import recommend
 from shoppilot.harness.tools import ToolRegistry
 
 
@@ -161,10 +162,20 @@ TASK_TOOL_MAP: dict[str, list[str]] = {  # task_type → 预加载工具（Aggre
 }
 
 
+# 推荐打分单独实现在 recommend.py（业务打分逻辑），这里转出便于工具注册与 MCP 暴露
+recommend_products = recommend.recommend_products
+
+
 def register_all(reg: ToolRegistry | None = None) -> ToolRegistry:
     reg = reg or registry
+    reg.register("recommend_products", recommend.recommend_products,
+                 "按用户约束（品类/预算/在意维度）做可解释加权打分推荐：价格贴合·平台评分·评论均分·"
+                 "销量热度·好评匹配·差评风险六维打分，输出得分构成、真实好评/差评原文与选择理由。"
+                 "任何选购推荐类问题优先调它（比单纯筛选更准）。",
+                 recommend.RecommendArgs, ["data_query"])
     reg.register("search_products", search_products,
-                 "按品类/预算/关键词筛选商品池并返回候选商品（价格、评分、卖点）。任何推荐类问题先调它。",
+                 "按品类/预算/关键词筛选商品池并返回候选商品（价格、评分、卖点）。仅在需要粗筛或"
+                 "推荐工具不适用时使用。",
                  SearchProductsArgs, ["data_query"])
     reg.register("get_product_info", get_product_info,
                  "查单个商品详情：价格、评分、月销、保修时长、卖点。",

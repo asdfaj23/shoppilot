@@ -71,7 +71,7 @@ def append_artifact(sid: str, result: TeamResult) -> None:
 def history_messages(sid: str) -> list[dict]:
     """从持久化的会话记忆重放对话（old+recent）。"""
     mem = MemoryManager(sid)
-    return mem.working.old + mem.working.recent
+    return mem.short.old + mem.short.recent
 
 
 # ---------------- 结构化产出卡渲染器 ----------------
@@ -109,6 +109,28 @@ def render_card(card: dict | None) -> None:
             cites = f" 依据[{it['citation']}]" if it.get("citation") else ""
             st.markdown(f"- **{it.get('product', '')}｜{it.get('issue', '')}**："
                         f"{it.get('detail', '')}{cites}")
+    elif kind == "research":
+        st.markdown("##### 🧭 研究报告")
+        st.markdown(f"**结论：** {card.get('conclusion', '')}")
+        if card.get("candidates"):
+            rows = "| 商品 | 价格 | 得分 | 结论 |\n| --- | --- | --- | --- |\n"
+            for c in card["candidates"]:
+                rows += f"| {c.get('name', '')} | ¥{c.get('price', '')} | {c.get('score', '')} | {c.get('verdict', '')} |\n"
+            st.markdown(rows)
+        if card.get("evidence"):
+            st.markdown("**证据链（可溯源）：**")
+            for e in card["evidence"]:
+                cite = f" [{e['citation']}]" if e.get("citation") else ""
+                st.markdown(f"- {e.get('claim', '')}{cite}（{e.get('source', '')}）")
+        cols = st.columns(2)
+        with cols[0]:
+            st.markdown("**⚠️ 风险：**")
+            st.markdown("\n".join(f"- {r}" for r in card.get("risks", [])) or "—")
+        with cols[1]:
+            st.markdown("**✅ 建议：**")
+            st.markdown("\n".join(f"- {a}" for a in card.get("advice", [])) or "—")
+        if card.get("data_window"):
+            st.caption(f"数据窗口：{card['data_window']}（教学仿真数据，生产环境请替换为实时数据）")
 
 
 def render_citations(citations: list[dict]) -> None:
@@ -131,10 +153,14 @@ def render_result_blocks(result: TeamResult, live_status=None) -> None:
         ok = result.reflect_issues[0].startswith("已修复")
         (st.info if ok else st.warning)(
             "🪞 反思：{'已修复' if ok else '发现'}：" + "；".join(result.reflect_issues))
-    if result.learned:
-        st.caption("🧠 本轮记住的偏好：" + "；".join(result.learned))
-    st.caption(f"⏱ {result.duration_s:.1f}s ｜ 🔢 {result.tokens} tokens"
+    bd = " ｜ ".join(f"{k} {v}" for k, v in (result.token_breakdown or {}).items())
+    st.caption(f"⏱ {result.duration_s:.1f}s ｜ 🔢 本轮 {result.tokens} tokens"
+               + (f"（{bd}）" if bd else "")
                + (f" ｜ trace: {result.trace_file}" if result.trace_file else ""))
+    if result.report_file and Path(result.report_file).exists():
+        st.download_button("📄 下载研究报告 (Markdown)",
+                           data=Path(result.report_file).read_text(encoding="utf-8"),
+                           file_name=Path(result.report_file).name, key=f"dl_{sid}")
 
 
 # ---------------- 侧边栏 ----------------
@@ -181,25 +207,21 @@ def sidebar() -> str:
                 artifacts_path(current).unlink(missing_ok=True)
                 st.rerun()
 
-        # ---- 用户画像面板（可编辑 = 可解释记忆） ----
+        # ---- 长期记忆（跨会话，人类可读可删） ----
         st.divider()
-        st.markdown("###### 🧠 用户画像（可编辑）")
-        mem = MemoryManager(current or "default")
-        p = mem.prefs.profile
-        budget = st.text_input("预算档", p.budget_tier, placeholder="如 300-800")
-        prio = st.text_input("在意维度（顿号分隔）", "、".join(p.priorities))
-        cats = st.text_input("关注品类（顿号分隔）", "、".join(p.categories))
-        if st.button("保存画像", use_container_width=True):
-            mem.prefs.update_from_ui(budget_tier=budget.strip(),
-                                     priorities=[x.strip() for x in prio.split("、") if x.strip()],
-                                     categories=[x.strip() for x in cats.split("、") if x.strip()])
-            st.toast("画像已保存，下一轮回答将参考")
-        if st.button("🗑 忘记我的画像", use_container_width=True):
-            removed = mem.prefs.forget(["budget", "priorities", "categories", "history"])
-            st.toast("已删除：" + ("、".join(removed) or "（画像本来为空）"))
-            st.rerun()
-        if p.history:
-            st.caption("最近询问：" + "；".join(p.history[:3]))
+        st.markdown("###### 🗂 长期记忆")
+        mem = MemoryManager(sid or "default")
+        raw = mem.long.raw()
+        if raw:
+            with st.expander(f"查看记忆（{len(mem.long.entries())} 条）"):
+                st.caption(raw[-800:] + ("…" if len(raw) > 800 else ""))
+            if st.button("🗑 清除长期记忆", use_container_width=True):
+                mem.long.clear()
+                st.toast("长期记忆已清除")
+                st.rerun()
+        else:
+            st.caption("（暂无跨会话记忆）")
+        st.caption(f"本会话 tokens：{mem.token_total}")
 
         # ---- 模式说明与示例 ----
         st.divider()
@@ -211,7 +233,6 @@ def sidebar() -> str:
                 st.session_state.pending_input = q
                 st.rerun()
 
-        st.caption(f"会话累计 tokens：{mem.token_total}")
         return current or "default"
 
 

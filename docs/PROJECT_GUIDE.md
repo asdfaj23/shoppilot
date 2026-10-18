@@ -264,9 +264,22 @@ for md in sorted(kb_dir.glob("*.md")):        # ← 改成遍历 pdf/html 即可
 
 ---
 
-## 4. 架构：8 层与单向依赖
+## 4. 架构：三个部件 + 两个记忆（刻意简单）
 
-### 4.1 "单向依赖"到底是什么意思
+> 说明：项目早期文档写过"8 层 Harness"，那是把配置/契约/工具/循环/编排都拆开写的结果。
+> 重构成熟版后**刻意收敛**：运行时只有 3 个部件 + 2 个记忆 + 数据层，不再为分层而分层。
+> "单向依赖"的纪律保留：数据层不知道 Agent 存在，Agent 不依赖前端。
+
+| 部件 | 文件 | 职责 |
+| --- | --- | --- |
+| 规划 | `agents/planner.py` | 意图/约束抽取 + 拆子任务（json_object + Pydantic 校验 + 1 次重写） |
+| 执行 | `agents/executor.py` | 子任务按拓扑分层并发；data/review 类走有界 ReAct 循环，knowledge 类走 RAG；工具按 task_type 预加载 |
+| 成稿 | `agents/composer.py` | 聚合子结论 → 结构化产出卡 + 强制引用 + 五项确定性自检（不过关修复一次） |
+| 短期记忆 | `harness/memory.py::ShortTermMemory` | 会话滑窗 + 滚动摘要 |
+| 长期记忆 | `harness/memory.py::LongTermMemory` | 跨会话 Markdown（data/memory/{user}.md），关键词检索注入，可查看可删 |
+| 数据层 | `domains/ecommerce/` | 商品池/评论/销量/知识库 + 7 个业务工具（换数据只改这里） |
+
+### 4.1 深度研究模式（借鉴 DeepResearch Agent 的做法）
 
 **定义**：层与层之间只允许**上层 import 下层**，下层代码里永远不出现上层的模块名。
 
@@ -421,7 +434,7 @@ config.py / llm.py（基础设施，不依赖任何人）
 - 更新时间：2026-10-18 10:22
 ```
 
-### 4.7 RAG（混合检索）
+### 4.4 RAG（混合检索）
 
 - **切分**：结构感知（按 `#`~`###` 标题），超长段 300 字、overlap 60 字（避免答案被切断在两半导致两边都检索不到）；
 - **向量路**：TF-IDF 字符 n-gram（离线秒建、中文友好）→ FAISS 内积检索（已 L2 归一化）；
