@@ -18,3 +18,4 @@ shoppilot/rag/index/
 # 日志
 *.log
 bytedance/ 
+.playwright-cli/ 
