@@ -288,7 +288,7 @@ def main() -> None:
                     deps = f" ← 依赖{t['depends_on']}" if t.get("depends_on") else ""
                     plan_box.markdown(
                         f"- [ ] **[{t['id']}]** `{t['task_type']}` {t['goal']}{deps}")
-                seen_tasks |= {t["id"] for t in tasks}
+                seen_tasks.update(t["id"] for t in tasks)
             elif etype == "plan_retry":
                 plan_box.warning(f"Planner 第{payload['attempt']}次校验失败，已让模型重写")
             elif etype == "task_start":
@@ -321,8 +321,17 @@ def main() -> None:
                 else:
                     status.update(label="🪞 发现问题，修复中…")
 
+        def _safe_event(fn):
+            def _wrap(*a):  # 前端渲染异常绝不影响 Agent 主流程
+                try:
+                    fn(*a)
+                except Exception:
+                    pass
+            return _wrap
+
         try:
-            result = run_team(user_input, session_id=sid, user_id="default", on_event=on_event)
+            result = run_team(user_input, session_id=sid, user_id="default",
+                              on_event=_safe_event(on_event))
         except Exception as e:  # 前端任何异常都局部呈现，不整页报错
             st.error(f"执行异常（已捕获）：{type(e).__name__}: {e}")
             return

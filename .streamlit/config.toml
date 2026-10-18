@@ -1,0 +1,10 @@
+# Streamlit 主题：服务端强制暗色（与前端设计一致，不依赖浏览器本地设置）
+[theme]
+base = "dark"
+backgroundColor = "#0d0f14"
+secondaryBackgroundColor = "#1b1d21"
+textColor = "#e8eaf0"
+primaryColor = "#4f8cff"
+
+[server]
+headless = true
