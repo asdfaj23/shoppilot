@@ -48,6 +48,54 @@
 └──────────┘
 ```
 
+**关键代码**（`agents/planner.py`）：
+```python
+def make_plan(user_text: str, memory_block: str = "") -> tuple[ShoppingQuery, Plan, int]:
+    # ① 让 LLM 一次性输出结构化 JSON：意图/实体/预算/在意维度/子任务列表
+    #    json_object 模式强制合法 JSON，避免模型吐自由文本
+    data, tk = llm.chat_json([
+        # system：告诉模型要输出什么 schema（意图枚举、字段名、DAG 依赖规则）
+        {"role": "system", "content": PLANNER_SYSTEM},
+        # user：记忆块（最近对话摘要+长期偏好）+ 用户原话
+        {"role": "user", "content": f"{memory_block}\n\n用户输入：{user_text}"},
+    ])
+    # ② Pydantic 契约校验：脏数据在入口清洗（缺字段给默认、类型错自动纠偏）
+    query = ShoppingQuery(**(data.get("query") or {}), raw_text=user_text)
+    # ③ 子任务列表包成 Plan 对象，带依赖关系（DAG）
+    plan = Plan(query=query, tasks=[SubTask(**t) for t in data.get("tasks") or []])
+    return query, plan, tk   # 返回：结构化需求 + 任务计划 + 本轮 token 数
+```
+
+**关键代码**（`harness/loop.py` ReAct 循环）：
+```python
+def react_loop(llm, system: str, user: str, registry,
+               budget: LoopBudget = LoopBudget(), on_event=None) -> LoopResult:
+    # 组装初始消息：system 提示词 + 用户问题
+    messages = build_messages(system, user)
+    for step in range(1, budget.max_steps + 1):   # 三重预算：最多 max_steps 步
+        # 调 LLM，把可用工具的 schema 一起给它，让它决定"要不要调工具"
+        resp = llm.chat(messages, tools=registry.schemas())
+        msg = resp["message"]
+        messages.append(msg)
+        # ① 模型不再要工具 = 任务完成，content 就是最终答案
+        if not msg.get("tool_calls"):
+            return LoopResult(answer=msg.get("content") or "", ...)
+        # ② 模型要调工具：并行执行每个 tool_call，结果按 tool_call_id 喂回
+        #    这样顺序乱了也不怕——id 对应关系不乱
+        for tc in msg["tool_calls"]:
+            out = registry.call(                      # 按名字找到工具函数
+                tc["function"]["name"],               #   工具名
+                tc["function"].get("arguments") or "{}"  #   参数（JSON 字符串）
+            )
+            # 把工具结果以 role=tool 塞回 messages，模型下一步就能看到
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc["id"],             #   对应回哪个 tool_call
+                "content": out,                        #   工具返回的 JSON 字符串
+            })
+        # 循环往复，直到模型说"不调工具了"或步数超限（降级返回）
+```
+
 ### 2.2 被否掉的方案
 
 | 方案 | 为什么否掉 |
@@ -72,6 +120,25 @@
 5. **reason**：每个推荐至少有一条理由
 
 零 token、可回归、可单测。LLM 只在规则报错时做一次修复。
+
+**关键代码**（`agents/composer.py`）：
+```python
+def _self_check(answer: str, query: ShoppingQuery, result: TeamResult) -> list[str]:
+    issues = []
+    # ① 引用越界检查：答案里的 [n] 编号必须落在资料总数范围内
+    #    （防止模型编造"[99] 某来源"这种不存在的引用）
+    cited = {int(m) for m in re.findall(r"\[(\d{1,2})\]", answer)}
+    n_sources = len(result.tasks) + len(result.citations)
+    if cited and not cited <= set(range(1, n_sources + 1)):
+        issues.append("引用编号越界")
+    # ② 预算硬约束：推荐价格不能超过用户预算上限
+    if query.budget_max and not budget_ok(answer, query.budget_max):
+        issues.append("推荐价格超出预算")
+    # ③ grounding：推荐的商品必须在工具返回的候选集里（防编造商品）
+    # ④ pool：不能提到商品池外的型号（防编造 iPhone 这种）
+    # ⑤ reason：每个推荐至少有一条理由（防空泛回答）
+    return issues   # 返回所有问题列表，非空则触发 LLM 修复一次
+```
 
 ---
 
@@ -102,6 +169,28 @@ LLM **不参与计算**，只负责"表达"——把 `decision_reason` 草稿组
 - 排序可回归（改权重 benchmark 跑一遍就知道好不好）
 - 不会出现"两个商品分数相同但 LLM 给出不同排序"的不一致
 - 面试时能说清楚"为什么推荐这个而不是那个"
+
+**关键代码**（`domains/ecommerce/recommend.py`）：
+```python
+# 七维权重：每个维度代表一种业务信号，加和=1.0
+WEIGHTS = {"price":0.13, "rating":0.16, "review_avg":0.10, "popularity":0.08,
+           "pros":0.22, "cons":0.18, "delivery":0.13}
+
+def recommend_products(...) -> str:
+    for row in df.itertuples():
+        parts = {
+            # ① 价格贴合度：越接近预算上限越好，不浪费预算
+            "price": budget_fit(row.price, budget_max),
+            # ② 平台评分归一：rating 3~5 分映射到 0~1
+            "rating": (row.rating - 3.0) / 2.0,
+            # ③ 物流时效：次日达=1.0，2-3天=0.5，4天以上=0.25
+            "delivery": 1 if row.delivery_days <= 1 else 0.25,
+            # ... 其余维度同理（评论均分/销量热度/好评匹配/差评风险）
+        }
+        # 加权求和：总分 = Σ(权重 × 维度得分)
+        total = sum(WEIGHTS[k] * parts[k] for k in WEIGHTS)
+        # LLM 不参与这个计算，只负责把 decision_reason 草稿组织成自然语言
+```
 
 ---
 
@@ -176,6 +265,28 @@ MemGPT 式做法：core_memory 里写"用户偏好降噪耳机、预算500、学
 电商售后场景（"我这耳机能不能退"）答错 = 客诉。所以 RAG 的 system prompt 写死两条规则：
 1. 每个关键结论后必须标 `[n]`
 2. 资料不足必须说"知识库中没有相关资料"，禁止硬答
+
+**关键代码**（`rag/rag_lib.py` 混合检索）：
+```python
+def hybrid_search(query: str, top_k: int = 4) -> list[dict]:
+    # ① 向量路：把 query 转向量，和所有 chunk 算余弦相似，取 top_k*3 候选
+    qv = embedder.encode([query])                       # TF-IDF char n-gram
+    vec_ranks = np.argsort(-(vectors @ qv[0]))[:top_k * 3]
+
+    # ② BM25 路：jieba 分词后算 BM25 得分，取 top_k*3 候选
+    bm25_ranks = bm25.get_scores(jieba.cut(query))      # 对专名/数字极准
+
+    # ③ RRF 融合：两路排名各算 1/(60+rank)，加起来就是融合分
+    #    k=60 是工业界默认值，压低单路排名的优势，让"两路都命中"的 chunk 排最前
+    fused = {}
+    for rank, i in enumerate(vec_ranks):
+        fused[i] = fused.get(i, 0) + 1 / (60 + rank + 1)
+    for rank, i in enumerate(np.argsort(-bm25_ranks)[:top_k * 3]):
+        fused[i] = fused.get(i, 0) + 1 / (60 + rank + 1)
+
+    # ④ 按融合分排序，取 top_k 条塞给 LLM
+    return [chunks[i] for i in sorted(fused, key=fused.get, reverse=True)[:top_k]]
+```
 
 ---
 
