@@ -103,7 +103,7 @@ python -X utf8 benchmark.py --run --compare
 python -X utf8 benchmark.py --baseline
 ```
 
-同题库纯 API 直调任务完成率 48%（编造价格、该拒未拒）vs Agent 96.3%；27 题拒答正确率 100%。评测明细见 [docs/benchmark_report.md](docs/benchmark_report.md)。
+同题库纯 API 直调任务完成率 40.7%（11/27）vs Agent 96.3%（26/27）；McNemar 配对检验 p=6.1e-05（b=15, c=0），统计显著。评测明细见 [docs/benchmark_report.md](docs/benchmark_report.md)，严谨对比实验见 [docs/rigorous_compare.md](docs/rigorous_compare.md)。
 
 **评测框架代码**：本项目的评测方法论（确定性规则判定 → LLM 裁判评审团 → 人工校准三层链路、题集构建、显著性检验）独立开源在 [`llmeval/`](llmeval/) 目录，可直接复用跑自己的评测：
 
