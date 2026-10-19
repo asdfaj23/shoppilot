@@ -63,7 +63,7 @@
 - **自动画像推断**：推断错一次（把"给爸爸买"推断成"用户自己要"）信任就崩了；只记用户明确说过的预算/在意维度，不猜。
 - **32K 长上下文替代 RAG**：政策文档更新一次就要重跑全量推理，且检索不可控（模型可能漏读关键段落）；RAG 按需检索+强制引用更可控。
 
-完整设计决策（含权衡）见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)；数据/架构/示例/评测详解见 [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)。
+完整设计决策与面试准备见 [INTERVIEW_PREP.md](INTERVIEW_PREP.md)；评测明细见 [docs/benchmark_report.md](docs/benchmark_report.md)。
 
 ## 快速开始
 
@@ -129,4 +129,4 @@ data/ecommerce/           # 商品池/评论/销量/知识库/题库（教学数
 
 ## MCP 三原语
 
-Tools（7 只读工具）/ Resources（商品池+售后文档）/ Prompts（导购模板），与内部 Agent 共享同一 ToolRegistry。配置方式见 [docs/PROJECT_GUIDE.md §5](docs/PROJECT_GUIDE.md)。
+Tools（7 只读工具）/ Resources（商品池+售后文档）/ Prompts（导购模板），与内部 Agent 共享同一 ToolRegistry。
