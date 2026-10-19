@@ -305,7 +305,73 @@ def hybrid_search(query: str, top_k: int = 4) -> list[dict]:
 
 ---
 
-## 7. 一句话总结
+## 7. 对比实验怎么做的（如何证明 Agent 比纯 API 强）
+
+### 7.1 实验设计：控制变量对照
+
+**目标**：证明"差距来自系统设计，不是模型本身"。
+
+| | Agent 组 | 基线组（纯 API） |
+|---|---|---|
+| 题库 | 同一套 27 题 | 同一套 27 题 |
+| 模型 | 同一个 DeepSeek | 同一个 DeepSeek |
+| 评分 | 同一套 `check_constraints()` 确定性规则 | 同一套规则 |
+| **给 LLM 什么** | 意图分类 + 工具 + RAG 知识库 + 记忆 + 编排 | 只有一句 system prompt（"你是电商导购助手"），裸问 |
+| temperature | 0.2 | 0.3 |
+
+**控制变量**：题库、模型、评分规则完全相同。**唯一变量**：Agent 有"系统"（工具/知识库/编排/记忆），基线没有。
+
+### 7.2 评分规则（零裁判 token，可复现）
+
+不是人工打分，也不是 LLM-as-judge，而是**确定性规则判定**：
+
+```python
+def check_constraints(answer: str, constraints: list[dict]) -> tuple[bool, list[str]]:
+    """must_contain=数组内 AND；must_contain_any=OR（兼容"12个月/一年"）；must_not_contain=出现即失败"""
+    fails = []
+    for c in constraints:
+        ctype, value = c.get("type"), c.get("value")
+        kws = [value] if isinstance(value, str) else (value or [])
+        if ctype == "must_contain":
+            for kw in kws:
+                if kw not in answer:
+                    fails.append(f"缺关键词：{kw}")
+        elif ctype == "must_contain_any":
+            if not any(kw in answer for kw in kws):
+                fails.append(f"缺关键词（任一）：{'/'.join(kws)}")
+        elif ctype == "must_not_contain":
+            for kw in kws:
+                if kw in answer:
+                    fails.append(f"出现禁用词：{kw}")
+    return (not fails), fails
+```
+
+**为什么不用 LLM 裁判**：裁判有偏差且烧钱；"推荐了蓝牙耳机A"这种事实用字符串包含判断 100% 可靠、可回归。
+
+### 7.3 基线翻车实录（定性展示）
+
+不是只报数字，还挑了基线翻车的真实例子：
+
+> **基线回答（shop-rec-001：预算500以内推荐降噪耳机）**：
+> "推荐华为 FreeBuds 6i，约 399-499 元，主动降噪…"
+> **失败点**：编造池外商品（商品池只有蓝牙耳机A/F）、编造价格、该拒答时硬答。
+
+这正是要证明的：**没有系统（工具/知识库/知识边界）= LLM 只能凭训练记忆瞎编**。
+
+### 7.4 已知瑕疵（面试被问主动承认）
+
+| 瑕疵 | 影响 | 改进方向 |
+|---|---|---|
+| temperature 不一致（Agent 0.2 vs 基线 0.3） | 基线温度更高更"放飞"，翻车率被放大 | 两边同温重跑 |
+| 样本只有 27 题 | 小样本，96.3% vs 48% 悬殊但小差异（1.0 vs 0.84）不稳 | 扩到 100+ 题 |
+| 单次跑，没报方差 | LLM 有随机性 | 跑 3 次取均值±标准差 |
+| 没做显著性检验 | 48% vs 96.3% 悬殊但没 formal test | McNemar 检验 + bootstrap CI |
+
+**一句话**：悬殊差异（48% vs 96.3%）不是噪声能解释的；但严格论文口径还差"同温+多次+显著性检验"。
+
+---
+
+## 8. 一句话总结
 
 > **这套系统的价值不是"用了 LLM"，而是"用工程把 LLM 的不稳定性关进了笼子"。**
 > 七维打分让推荐可回归，三层记忆让多轮不断片，混合检索让售后不答错，确定性 Reflection 让编造无处遁形。
