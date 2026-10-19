@@ -172,7 +172,7 @@ category,product,sales,rank
 
 ### 3.6 评测题库 `data/ecommerce/bench_cases.json`（25 题）
 
-字段与字节 llmeval 数据集 schema 同源（`id/dimension/task_type/prompt/reference/constraints/meta`），一条真实 case：
+字段与 llmeval 数据集 schema 同源（`id/dimension/task_type/prompt/reference/constraints/meta`），一条真实 case：
 
 ```json
 {

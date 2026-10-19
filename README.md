@@ -105,6 +105,13 @@ python -X utf8 benchmark.py --baseline
 
 同题库纯 API 直调任务完成率 48%（编造价格、该拒未拒）vs Agent 96.3%；27 题拒答正确率 100%。评测明细见 [docs/benchmark_report.md](docs/benchmark_report.md)。
 
+**评测框架代码**：本项目的评测方法论（确定性规则判定 → LLM 裁判评审团 → 人工校准三层链路、题集构建、显著性检验）独立开源在 [`llmeval/`](llmeval/) 目录，可直接复用跑自己的评测：
+
+```bash
+cd llmeval
+python run.py --help
+```
+
 ## 目录速览
 
 ```

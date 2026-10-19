@@ -34,12 +34,11 @@ README「示例提问」一节是**官方示例集**（五大场景 × 若干问
 4. **记忆**：四类记忆（短期/Session State/画像/知识库）语义不混；画像只写确定性抽取的
    用户明确表达；任何"长期记忆写入"必须过筛（稳定/有用/被确认）。
 5. **Reflection**：新增检查必须是**确定性规则**（可回归、零 token），LLM 只做修复。
-6. **评测**：新增能力先在 `data/ecommerce/bench_cases.json` 加题（字段设计与 bytedance
+6. **评测**：新增能力先在 `data/ecommerce/bench_cases.json` 加题（字段设计与 llmeval
    llmeval schema 同源：id/prompt/reference/constraints/meta.expected_tools/expected_behavior），
    跑 `benchmark.py --run` 回归后再提交。
 
 ## Git 约定
 
 - 按阶段 commit 存档点，message 中文、写清层与机制（参考 git log）。
-- `bytedance/` 是内嵌 git 仓库，已 ignore，不要 add。
 - 提交前跑 `python -X utf8 benchmark.py --limit 3` 冒烟（省 token），大改动全量回归。

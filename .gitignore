@@ -17,6 +17,12 @@ shoppilot/rag/index/
 
 # 日志
 *.log
-bytedance/ 
 .playwright-cli/ 
 rednote-shoppilot/ 
+
+# 评测框架（llmeval）的本地缓存/密钥/运行产物
+llmeval/.env
+llmeval/outputs/
+llmeval/_local/
+llmeval/backups/
+llmeval/.workbuddy/
