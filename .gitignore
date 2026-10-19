@@ -26,3 +26,21 @@ llmeval/outputs/
 llmeval/_local/
 llmeval/backups/
 llmeval/.workbuddy/
+
+# 个人文件，绝不提交
+邱子策*
+*.pdf
+*.pptx
+*个人介绍*
+*简历*
+*实习与Agent学习规划*
+
+# 打包产物与分享缓存
+ShopPilot.zip
+.trae-html-share-packages/
+rednote-shoppilot/
+
+# 运行时产物
+data/memory/
+shoppilot/reports/
+archive/
