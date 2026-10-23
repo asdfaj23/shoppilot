@@ -1,0 +1,50 @@
+{
+  "vanilla": {
+    "cases": 2,
+    "pass_rate": 0.5,
+    "violation_rate": 1.0,
+    "over_budget": 1.0,
+    "fabrication": 0.0,
+    "citation": 0.0,
+    "refusal": 0.0,
+    "extra_tokens_mean": 0.0,
+    "tokens_mean": 600.0,
+    "repaired": 0
+  },
+  "llm_reflection": {
+    "cases": 2,
+    "pass_rate": 0.5,
+    "violation_rate": 1.0,
+    "over_budget": 1.0,
+    "fabrication": 0.0,
+    "citation": 0.0,
+    "refusal": 0.0,
+    "extra_tokens_mean": 0.0,
+    "tokens_mean": 600.0,
+    "repaired": 0
+  },
+  "multi_agent": {
+    "cases": 2,
+    "pass_rate": 0.5,
+    "violation_rate": 1.0,
+    "over_budget": 1.0,
+    "fabrication": 0.0,
+    "citation": 0.0,
+    "refusal": 0.0,
+    "extra_tokens_mean": 0.0,
+    "tokens_mean": 600.0,
+    "repaired": 0
+  },
+  "deterministic": {
+    "cases": 2,
+    "pass_rate": 0.5,
+    "violation_rate": 0.0,
+    "over_budget": 0.0,
+    "fabrication": 0.0,
+    "citation": 0.0,
+    "refusal": 0.0,
+    "extra_tokens_mean": 120.0,
+    "tokens_mean": 720.0,
+    "repaired": 2
+  }
+}

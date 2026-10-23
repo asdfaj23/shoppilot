@@ -1,46 +1,48 @@
-# 敏感信息与密钥，绝不提交
+# ===== 敏感信息与密钥 =====
 .env
+.env.local
 
-# Python
+# ===== Python =====
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
-# 运行时产物不提交；业务小数据（CSV/知识库/题库）要提交
+# ===== 运行时产物（业务小数据 CSV/知识库/题库需提交） =====
+data/ecommerce/sessions/
+data/ecommerce/traces/
+data/ecommerce/reports/
+data/ecommerce/memory/
 data/sessions/
+data/memory/
 traces/
-shoppilot/rag/index/
 *.faiss
 *.index
 
-# 日志
+# ===== 日志 =====
 *.log
-.playwright-cli/ 
-rednote-shoppilot/ 
+.playwright-cli/
 
-# 评测框架（llmeval）的本地缓存/密钥/运行产物
+# ===== 评测框架（llmeval 子模块）本地缓存/密钥/产物 =====
 llmeval/.env
 llmeval/outputs/
 llmeval/_local/
 llmeval/backups/
-llmeval/.workbuddy/
 
-# 个人文件，绝不提交
-邱子策*
+# ===== 个人文件，绝不提交 =====
 *.pdf
 *.pptx
 *个人介绍*
 *简历*
-*实习与Agent学习规划*
 
-# 打包产物与分享缓存
-ShopPilot.zip
+# ===== 打包/分享缓存 =====
+*.zip
 .trae-html-share-packages/
-rednote-shoppilot/
-
-# 运行时产物
-data/memory/
-shoppilot/reports/
 archive/

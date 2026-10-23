@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shoppilot"
+version = "0.1.0"
+description = "A domain-pluggable shopping agent with deterministic, zero-token output guardrails."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Qiu Zice" }]
+keywords = ["llm-agent", "guardrails", "react", "mcp", "verifiable-ai", "evaluation"]
+dependencies = [
+    "openai>=1.0",
+    "pydantic>=2",
+    "pydantic-settings",
+    "pandas",
+    "scikit-learn",
+    "jieba",
+    "rank-bm25",
+    "python-dotenv",
+    "mcp",
+]
+
+[project.optional-dependencies]
+serve = ["fastapi", "uvicorn", "streamlit"]
+dev = ["pytest", "ruff", "httpx"]
+
+[project.scripts]
+shoppilot = "shoppilot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+shoppilot = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = ["E501", "B008", "UP007"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
